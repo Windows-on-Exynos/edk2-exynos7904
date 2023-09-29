@@ -110,7 +110,7 @@ void setFBcolor(char* colors) {
   BuildCpuHob (40, PcdGet8 (PcdPrePiCpuIoSize));
 
   // Set the Boot Mode
-  SetBootMode (BOOT_WITH_FULL_CONFIGURATION);
+  SetBootMode (BOOT_WITH_DEFAULT_SETTINGS);
 
   // Initialize Platform HOBs (CpuHob and FvHob)
   Status = PlatformPeim ();
