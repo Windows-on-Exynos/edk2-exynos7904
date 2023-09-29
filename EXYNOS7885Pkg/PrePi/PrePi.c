@@ -55,7 +55,7 @@ VOID Main (IN  UINT64  StartTimeStamp)
 
 void setFBcolor(char* colors) {
     char* base = (char*)0x0ec000000ull;
-    for (int i = 0; i < 0x00800000; i += 4) {
+    for (int i = 0; i < 0x01400000; i += 4) {
         base[i] = colors[0];      // Blue component
         base[i + 1] = colors[1];  // Green component
         base[i + 2] = colors[2];  // Red component
