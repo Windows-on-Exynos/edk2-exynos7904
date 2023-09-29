@@ -73,7 +73,7 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
     {"HLOS 1.5",          0x90200000, 0x2BA00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
     /*Memory hole 0xbbc00000 -> 0xc0000000*/
     {"HLOS 3",            0xc0000000, 0x2C000000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
-    {"Display Reserved",  0xec000000, 0x00800000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
+    {"Display Reserved",  0xec000000, 0x01400000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
     {"HLOS 4",            0xEC800000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
 
     /* Terminator for MMU */
