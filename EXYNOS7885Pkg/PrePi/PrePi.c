@@ -28,6 +28,8 @@ VOID UartInit(VOID)
 {
   SerialPortInitialize();
 
+  MmioWrite32(0x14860070,0x1281);
+
   DEBUG((EFI_D_INFO, "\nPEdeka on sexynos (AArch64)\n"));
   DEBUG(
       (EFI_D_INFO, "Firmware version %s built %a %a\n\n",
