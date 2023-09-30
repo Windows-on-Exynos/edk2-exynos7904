@@ -34,9 +34,9 @@ VOID UartInit(VOID)
     base[i] = 0;
   }
 
-  DEBUG((EFI_D_INFO, "\nPEdeka on sexynos (AArch64)\n"));
+  DEBUG((EFI_D_INFO, "\nEDK2 on Samsung Galaxy A30 (AArch64)\n"));
   DEBUG(
-      (EFI_D_INFO, "Firmware version %s built %a %a\n\n",
+      (EFI_D_INFO, "UEFI (firmware version %s built %a %a)\n\n",
        (CHAR16 *)PcdGetPtr(PcdFirmwareVersionString), __TIME__, __DATE__));
 }
 
