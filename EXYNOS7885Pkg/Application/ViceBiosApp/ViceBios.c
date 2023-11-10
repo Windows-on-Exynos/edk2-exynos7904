@@ -5,8 +5,6 @@
 
 EFI_STATUS EFIAPI BiosEntry(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
-    EFI_STATUS Status;
-
     // Muestra un mensaje en la pantalla usando DebugLib
     DEBUG((EFI_D_INFO, "¡Hello from the UEFI app on Debug mode!\n"));
 
