@@ -190,10 +190,7 @@ READ_LOCK_STATUS   = TRUE
   #
   # UEFI applications
   #
-  INF ShellPkg/Application/Shell/Shell.inf
-!ifdef $(INCLUDE_TFTP_COMMAND)
-  INF ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf
-!endif #$(INCLUDE_TFTP_COMMAND)
+  INF EXYNOS7885Pkg/Application/ViceBiosApp/ViceBiosApp.inf
 
   #
   # Bds
