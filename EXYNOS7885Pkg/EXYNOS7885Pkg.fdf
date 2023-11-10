@@ -190,7 +190,6 @@ READ_LOCK_STATUS   = TRUE
   #
   # UEFI applications
   #
-  INF EXYNOS7885Pkg/Application/ViceBiosApp/ViceBiosApp.inf
 
   #
   # Bds
@@ -202,6 +201,8 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/DriverHealthManagerDxe/DriverHealthManagerDxe.inf
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
   INF MdeModulePkg/Application/UiApp/UiApp.inf
+
+  INF EXYNOS7885Pkg/Application/ViceBiosApp/ViceBiosApp.inf
 
 [FV.FVMAIN_COMPACT]
 FvAlignment        = 8
