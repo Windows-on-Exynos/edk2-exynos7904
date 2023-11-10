@@ -3,7 +3,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DebugLib.h>  // Incluye DebugLib
 
-EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
+EFI_STATUS EFIAPI BiosEntry(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
     EFI_STATUS Status;
 
