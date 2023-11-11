@@ -14,6 +14,14 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     Print(L"Hello, world!\r\n");
     Print(L"I am ViceBios\r\n");
 
+    EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop;
+    Status = gBS->LocateProtocol(&gEfiGraphicsOutputProtocolGuid, NULL, (VOID**)&Gop);
+    if (EFI_ERROR(Status))
+    {
+        Print(L"Failed to open GOP protocol: %r\n", Status);
+        return Status;
+    }
+
     // Configura el modo gráfico (por ejemplo, resolución de 800x600)
     Status = Gop->SetMode(Gop, 0); // Modo 1 suele ser 800x600
     if (EFI_ERROR(Status))
