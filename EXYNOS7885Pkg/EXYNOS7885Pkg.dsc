@@ -112,8 +112,14 @@
   #
   # ARM General Interrupt Controller
   #
+  gArmTokenSpaceGuid.PcdArmArchTimerFreqInHz|26000000
+  gArmTokenSpaceGuid.PcdArmArchTimerSecIntrNum|13
+  gArmTokenSpaceGuid.PcdArmArchTimerIntrNum|14
+  gArmTokenSpaceGuid.PcdArmArchTimerVirtIntrNum|11
+  gArmTokenSpaceGuid.PcdArmArchTimerHypIntrNum|10
   gArmTokenSpaceGuid.PcdGicDistributorBase|0x12301000
-  gArmTokenSpaceGuid.PcdGicInterruptInterfaceBase|0x12302000
+  gArmTokenSpaceGuid.PcdGicRedistributorsBase|0x12304000
+  gArmTokenSpaceGuid.PcdGicInterruptInterfaceBase|0x12300000
 
   gArmTokenSpaceGuid.PcdArmArchTimerIntrNum|0x12
   gArmTokenSpaceGuid.PcdArmArchTimerVirtIntrNum|0x13
@@ -240,6 +246,7 @@
   FatPkg/EnhancedFatDxe/Fat.inf
   EXYNOS7885Pkg/Drivers/BootRamDiskHelperDxe/BootRamDiskHelperDxe.inf 
   MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
+  MdeModulePkg/Universal/FvSimpleFileSystemDxe/FvSimpleFileSystemDxe.inf
 
   #
   # ACPI Support
