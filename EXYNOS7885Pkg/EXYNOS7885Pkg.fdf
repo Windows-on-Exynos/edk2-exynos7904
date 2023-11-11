@@ -240,7 +240,7 @@ APRIORI DXE {
 
   ## Embedded RAMDisk (IMG format)
   FILE FREEFORM = 650B7CD0-94F8-46CC-88DE-8C199D41EDA3 {
-    SECTION RAW = EXYNOS7885Pkg/ramdisk/WinPE.img
+    SECTION RAW = EXYNOS7885Pkg/ramdisk/image.img
     SECTION UI = "Embedded RAMDisk"
   }
 
