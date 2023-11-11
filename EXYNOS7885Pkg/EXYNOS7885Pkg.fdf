@@ -206,8 +206,7 @@ APRIORI DXE {
 
   INF MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
 
-  INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
-  INF EXYNOS7885Pkg/Drivers/BootRamDiskHelperDxe/BootRamDiskHelperDxe.inf
+  INF MdeModulePkg/Universal/FvSimpleFileSystemDxe/FvSimpleFileSystemDxe.inf
 
   #
   # ACPI Support
@@ -235,6 +234,9 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/DriverHealthManagerDxe/DriverHealthManagerDxe.inf
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
   INF MdeModulePkg/Application/UiApp/UiApp.inf
+
+  INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
+  INF EXYNOS7885Pkg/Drivers/BootRamDiskHelperDxe/BootRamDiskHelperDxe.inf
 
   ## Embedded RAMDisk (IMG format)
   FILE FREEFORM = 650B7CD0-94F8-46CC-88DE-8C199D41EDA3 {
