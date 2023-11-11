@@ -173,6 +173,9 @@ READ_LOCK_STATUS   = TRUE
 
   INF MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
 
+  INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
+  INF EXYNOS7885Pkg/Drivers/BootRamDiskHelperDxe/BootRamDiskHelperDxe.inf
+
   #
   # ACPI Support
   #
@@ -187,6 +190,8 @@ READ_LOCK_STATUS   = TRUE
   INF EXYNOS7885Pkg/Drivers/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
   INF MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
 
+  INF EXYNOS7885Pkg/Application/ViceBiosApp/ViceBiosApp.inf
+
   #
   # Bds
   #
@@ -198,7 +203,16 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
   INF MdeModulePkg/Application/UiApp/UiApp.inf
 
-  INF EXYNOS7885Pkg/Application/ViceBiosApp/ViceBiosApp.inf
+  ## Embedded RAMDisk (IMG format)
+  FILE FREEFORM = 650B7CD0-94F8-46CC-88DE-8C199D41EDA3 {
+    SECTION RAW = EXYNOS7885Pkg/ramdisk/WinPE.img
+    SECTION UI = "Embedded RAMDisk"
+  }
+
+#  FILE APPLICATION = C57AD6B7-0515-40A8-9D21-551652854E37 {
+#  SECTION PE32 = EXYNOS7885Pkg/ramdisk/bootaa64.efi
+#  SECTION UI = "EdkShell"
+#}
 
 [FV.FVMAIN_COMPACT]
 FvAlignment        = 8
