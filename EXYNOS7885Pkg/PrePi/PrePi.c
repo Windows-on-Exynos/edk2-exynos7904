@@ -29,12 +29,12 @@ VOID UartInit(VOID)
   SerialPortInitialize();
 
   MmioWrite32(0x14860070,0x1281);
-  UINT8 *base = (UINT8 *)0xEC000000ull;
+  UINT8 *base = (UINT8 *)0xCE000000ull;
   for (UINTN i = 0; i < 0x01400000; i++) {
     base[i] = 0;
   }
 
-  DEBUG((EFI_D_INFO, "\nEDK2 on Samsung Galaxy A30 (AArch64)\n"));
+  DEBUG((EFI_D_INFO, "\nEDK2 on Motorola One Action (AArch64)\n"));
   DEBUG(
       (EFI_D_INFO, "UEFI (firmware version %s built %a %a)\n\n",
        (CHAR16 *)PcdGetPtr(PcdFirmwareVersionString), __TIME__, __DATE__));
