@@ -29,7 +29,7 @@ VOID UartInit(VOID)
   SerialPortInitialize();
 
   MmioWrite32(0x148B0070,0x1281);
-  UINT8 *base = (UINT8 *)0xCA000000ull;
+  UINT8 *base = (UINT8 *)0xed000000ull;
   for (UINTN i = 0; i < 0x01400000; i++) {
     base[i] = 0;
   }
