@@ -19,4 +19,4 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: Motorola One Action
-        path: ./workspace/UEFI
+        path: ./workspace/kernel
