@@ -59,7 +59,6 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
      MemLabel(32 Char.),  MemBase,    MemSize, BuildHob, ResourceType, ResourceAttribute, MemoryType, CacheAttributes
 */
 
-//--------------------- Register ---------------------
     {"Periphs",           0x00000000, 0x15000000,  AddMem, MEM_RES, UNCACHEABLE,  RtCode,   DEVICE},
 
 //--------------------- DDR --------------------- */
@@ -74,6 +73,14 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
     {"HLOS 3",            0xc0000000, 0x2D000000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
     {"Display Reserved",  0xed000000, 0x04000000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
     // {"HLOS 4",            0xED800000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
+
+//--------------------- Register ---------------------
+    {"GIC Distributor",   0x12301000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
+    {"GIC Redistributors", 0x12302000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
+    {"PinCtrl 1",         0x11850000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
+    {"PinCtrl 2",         0x11C20000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
+	{"ADC",               0x11C30000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
+    {"SPEEDY",            0x11A10000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
 
     /* Terminator for MMU */
     { "Terminator", 0, 0, 0, 0, 0, 0, 0}};

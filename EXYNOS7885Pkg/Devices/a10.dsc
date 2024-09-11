@@ -27,3 +27,8 @@
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferHeight|2520
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferVisibleWidth|1080
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferVisibleHeight|2520
+
+  gEXYNOS7885PkgTokenSpaceGuid.BankOffset|0x20
+  gEXYNOS7885PkgTokenSpaceGuid.GpaBase|0x11850000
+  gEXYNOS7885PkgTokenSpaceGuid.GpmBase|0x11C20000
+  gEXYNOS7885PkgTokenSpaceGuid.GpqBase|0x11850000

@@ -123,6 +123,13 @@ APRIORI DXE {
 
   INF MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
 
+  # SoC Drivers
+  INF EXYNOS7885Pkg/Drivers/SPEEDYDxe/SPEEDYDxe.inf
+  INF EXYNOS7885Pkg/Drivers/SAMSUNGGpioDxe/SAMSUNGGpioDxe.inf
+  # INF EXYNOS7885Pkg/Drivers/ExynosAdcDxe/ExynosAdcDxe.inf
+  # INF EXYNOS7885Pkg/Drivers/ExynosHSI2CDxe/ExynosHSI2CDxe.inf
+  # INF EXYNOS7885Pkg/Drivers/ExynosUFSDxe/ExynosUFSDxe.inf
+
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
   #
@@ -189,7 +196,13 @@ APRIORI DXE {
   INF EXYNOS7885Pkg/Drivers/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
   INF MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
 
-  INF EXYNOS7885Pkg/Application/ViceBiosApp/ViceBiosApp.inf
+  #
+  # UEFI applications
+  #
+  INF ShellPkg/Application/Shell/Shell.inf
+!ifdef $(INCLUDE_TFTP_COMMAND)
+  INF ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf
+!endif #$(INCLUDE_TFTP_COMMAND)
 
   #
   # Bds
@@ -204,12 +217,6 @@ APRIORI DXE {
 
   INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
   INF EXYNOS7885Pkg/Drivers/BootRamDiskHelperDxe/BootRamDiskHelperDxe.inf
-
-  ## Embedded RAMDisk (IMG format)
-  FILE FREEFORM = 650B7CD0-94F8-46CC-88DE-8C199D41EDA3 {
-    SECTION RAW = EXYNOS7885Pkg/ramdisk/image.img
-    SECTION UI = "Embedded RAMDisk"
-  }
 
 #  FILE APPLICATION = C57AD6B7-0515-40A8-9D21-551652854E37 {
 #  SECTION PE32 = EXYNOS7885Pkg/ramdisk/bootaa64.efi

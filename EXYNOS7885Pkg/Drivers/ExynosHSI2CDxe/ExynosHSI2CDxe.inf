@@ -1,0 +1,31 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = ExynosHSI2CDxe
+  FILE_GUID                      = 133F6099-1F05-452E-8963-8AE76B3232AF
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = InitHSI2CDriver
+
+[Sources.common]
+  ExynosHSI2CDxe.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  DebugLib
+  IoLib
+  TimerLib
+  BaseMemoryLib
+  ArmLib
+
+[Protocols]
+  gEfiExynosGpioProtocolGuid
+ # gEfiExynosHSI2CProtocolGuid
+
+[Depex]
+  TRUE

@@ -1,0 +1,4 @@
+REPO:   https://github.com/halal-beef/lk_linaro/
+COMMIT: b530d31fb125e47500bea3444f6e6806cb910f3d
+TAG:    Leon-TP1A-2A03V1-2A06R1
+FILE:   dev/i2c/exynos_hsi2c.c

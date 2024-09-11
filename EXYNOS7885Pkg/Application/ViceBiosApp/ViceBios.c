@@ -35,7 +35,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     UINTN RectWidth = 200; // Ancho del rectángulo
     UINTN RectHeight = 100; // Alto del rectángulo
     UINTN XPos = (1080 - RectWidth) / 2; // Centrado horizontalmente
-    UINTN YPos = (2340 - RectHeight) / 2; // Centrado verticalmente
+    UINTN YPos = (2520 - RectHeight) / 2; // Centrado verticalmente
 
     for (UINTN y = YPos; y < YPos + RectHeight; y++)
     {
