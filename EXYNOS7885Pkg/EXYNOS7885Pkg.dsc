@@ -103,7 +103,8 @@
 [PcdsFixedAtBuild.common]
   gEfiMdePkgTokenSpaceGuid.PcdDefaultTerminalType|4
 
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"Alpha"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVendor|L"Windows on Exynos 7885"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"0.2-rc1"
 
   # We only boot one processor here!
   gArmPlatformTokenSpaceGuid.PcdCoreCount|1
