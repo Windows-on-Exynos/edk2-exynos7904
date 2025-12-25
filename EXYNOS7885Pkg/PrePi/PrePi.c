@@ -78,6 +78,7 @@ PrePiMain (
   // Initialize the architecture specific bits
   ArchInitialize ();
 
+  MmioWrite32(0x148B0070,0x1281);
   // Paint screen to BLACK
   PaintScreen(0);
 

@@ -103,7 +103,7 @@
 [PcdsFixedAtBuild.common]
   gEfiMdePkgTokenSpaceGuid.PcdDefaultTerminalType|4
 
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVendor|L"Windows on Exynos 7885"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVendor|L"Windows on Exynos 9610"
   gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"0.2-rc1"
 
   # We only boot one processor here!
@@ -116,6 +116,7 @@
   gArmTokenSpaceGuid.PcdGicDistributorBase|0x12301000
   gArmTokenSpaceGuid.PcdGicInterruptInterfaceBase|0x12302000
 
+  gArmTokenSpaceGuid.PcdArmArchTimerFreqInHz|26000000
   gArmTokenSpaceGuid.PcdArmArchTimerIntrNum|0x12
   gArmTokenSpaceGuid.PcdArmArchTimerVirtIntrNum|0x13
 
