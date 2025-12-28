@@ -180,3 +180,6 @@ SimpleFbDxe screen driver is from imbushuo's [Lumia950XLPkg](https://github.com/
 Zhuowei for making edk2-pixel3
 
 All the people in ``EDKII pain and misery, struggles and disappointment`` on Discord.
+
+bootlogo is from rickliu2000's [Lumia930Pkg](https://github.com/rickliu2000/Lumia930Pkg).
+

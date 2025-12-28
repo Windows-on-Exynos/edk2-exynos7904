@@ -23,9 +23,24 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/TimerLib.h>
-#include <Library/SynchronizationLib.h>
 
-#include <Protocol/ExynosClock.h>
+// #include <Protocol/ExynosClock.h>
+
+typedef enum {
+  ExynosClockUart0,
+  ExynosClockUart1,
+  ExynosClockMmc0,
+  ExynosClockMmc1,
+  ExynosClockI2c0,
+  ExynosClockI2c1,
+  ExynosClockMax
+} EXYNOS_CLOCK_ID;
+
+typedef struct {
+  EXYNOS_CLOCK_ID ClockId;
+  UINT32 EnableOffset;
+  UINT32 EnableBit;
+} EXYNOS_CLOCK_DESC;
 
 /**
   Initialize the state information for the ExynosClockDxe

@@ -111,6 +111,7 @@ READ_LOCK_STATUS   = TRUE
   #
   # Multiple Console IO support
   #
+  INF EmbeddedPkg/SimpleTextInOutSerial/SimpleTextInOutSerial.inf
   INF MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf
   INF MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe.inf
   INF MdeModulePkg/Universal/Console/GraphicsConsoleDxe/GraphicsConsoleDxe.inf
@@ -125,13 +126,14 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
   #
-  # GPIO
-  #
-
-  #
   # Virtual Keyboard
   #
   INF EmbeddedPkg/Drivers/VirtualKeyboardDxe/VirtualKeyboardDxe.inf
+
+  #
+  # SoC Drivers
+  #
+  INF EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
 
   #
   # Platform Dxes

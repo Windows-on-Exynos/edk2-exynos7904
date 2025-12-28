@@ -16,17 +16,13 @@
   EXYNOS7885Pkg/EXYNOS7885Pkg.dec
 
 [LibraryClasses]
-  ArmLib
   BaseLib
   DebugLib
   MemoryAllocationLib
+  UefiLib
   UefiDriverEntryPoint
   UefiBootServicesTableLib
-  CacheMaintenanceLib
-  DxeServicesTableLib
   IoLib
-  TimerLib
-  SynchronizationLib
 
 [BuildOptions.AARCH64]
   GCC:*_*_*_CC_FLAGS = -Wno-pointer-to-int-cast -Wno-unused-variable -Wno-unused-function -Wno-overflow
@@ -34,8 +30,6 @@
 [Guids]
 
 [Protocols]
-  gEfiCpuArchProtocolGuid
-  gExynosClockProtocolGuid
 
 [depex]
  TRUE

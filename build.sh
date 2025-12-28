@@ -7,6 +7,7 @@ set -e
 GCC5_AARCH64_PREFIX=aarch64-linux-gnu- build -j$(nproc) -s -n 0 -a AARCH64 -t GCC5 -p EXYNOS7885Pkg/Devices/a10.dsc
 cat BootShim/BootShim.bin workspace/Build/EXYNOS7885Pkg/DEBUG_GCC5/FV/EXYNOS7885PKG_UEFI.fd device_specific/a10.dtb > workspace/UEFI
 mkbootimg --kernel workspace/UEFI -o workspace/boot.img
+mkbootimg --kernel workspace/UEFI -o workspace/boot-a10.img
 cd workspace/
 tar -c boot.img -f boot.tar
 cd ..
