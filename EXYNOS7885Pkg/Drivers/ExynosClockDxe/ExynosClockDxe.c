@@ -23,9 +23,8 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/TimerLib.h>
-#include <Library/SynchronizationLib.h>
 
-#include <Protocol/ExynosClock.h>
+// #include <Protocol/ExynosClock.h>
 
 /**
   Initialize the state information for the ExynosClockDxe
