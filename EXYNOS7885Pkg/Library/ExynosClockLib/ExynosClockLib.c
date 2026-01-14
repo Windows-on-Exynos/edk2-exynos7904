@@ -1,7 +1,7 @@
-#include <Library/ExynosClockLib.h>
-
 #include <Library/IoLib.h>
 #include <Library/DebugLib.h>
+
+#include <Library/ExynosClockLib.h>
 
 EFI_STATUS
 ExynosClockInit (

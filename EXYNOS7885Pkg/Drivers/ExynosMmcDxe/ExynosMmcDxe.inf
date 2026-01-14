@@ -1,0 +1,35 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = ExynosMmcDxe
+  FILE_GUID                      = 72c3f40a-d244-49f2-93fb-9aa41aaceda9
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+
+  ENTRY_POINT                    = ExynosMmcDxeInitialize
+
+[Sources.common]
+  ExynosMmcDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  ArmPkg/ArmPkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  MemoryAllocationLib
+  UefiLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  IoLib
+
+[BuildOptions.AARCH64]
+  GCC:*_*_*_CC_FLAGS = -Wno-pointer-to-int-cast -Wno-unused-variable -Wno-unused-function -Wno-overflow
+
+[Guids]
+
+[Protocols]
+
+[depex]
+ TRUE

@@ -210,6 +210,7 @@
   EmbeddedPkg/Drivers/VirtualKeyboardDxe/VirtualKeyboardDxe.inf
 
   EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosMmcDxe/ExynosMmcDxe.inf
 
   #
   # Platform Dxes
