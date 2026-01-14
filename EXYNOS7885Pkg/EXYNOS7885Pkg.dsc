@@ -81,6 +81,11 @@
   MemoryInitPeiLib|EXYNOS7885Pkg/Library/MemoryInitPeiLib/PeiMemoryAllocationLib.inf
   PlatformPeiLib|EXYNOS7885Pkg/Library/PlatformPeiLib/PlatformPeiLib.inf
 
+  #
+  # SoC Drivers
+  #
+  ExynosClockLib|EXYNOS7885Pkg/Library/ExynosClockLib/ExynosClockLib.inf
+
 [LibraryClasses.common.SEC]
   PrePiLib|EmbeddedPkg/Library/PrePiLib/PrePiLib.inf
   ExtractGuidedSectionLib|EmbeddedPkg/Library/PrePiExtractGuidedSectionLib/PrePiExtractGuidedSectionLib.inf

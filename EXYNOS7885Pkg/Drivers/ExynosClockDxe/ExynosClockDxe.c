@@ -24,17 +24,9 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/TimerLib.h>
 
-// #include <Protocol/ExynosClock.h>
+#include <Library/ExynosClockLib.h>
 
-typedef enum {
-  ExynosClockUart0,
-  ExynosClockUart1,
-  ExynosClockMmc0,
-  ExynosClockMmc1,
-  ExynosClockI2c0,
-  ExynosClockI2c1,
-  ExynosClockMax
-} EXYNOS_CLOCK_ID;
+// #include <Protocol/ExynosClock.h>
 
 typedef struct {
   EXYNOS_CLOCK_ID ClockId;
@@ -57,6 +49,7 @@ ExynosClockDxeInitialize (
   IN EFI_SYSTEM_TABLE *SystemTable)
 {
 	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Initializing Exynos Clock Driver\n"));
+	ExynosClockInit();
 
 	return EFI_SUCCESS;
 }
