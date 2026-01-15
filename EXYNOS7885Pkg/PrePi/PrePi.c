@@ -101,6 +101,8 @@ PrePiMain (
         StacksBase
     ));
 
+  DEBUG((EFI_D_INFO, "MMC VERSION: 0x%x\n",  MmioRead32(0x13500000 + 0x08)));
+
   // Initialize the Debug Agent for Source Level Debugging
   InitializeDebugAgent (DEBUG_AGENT_INIT_POSTMEM_SEC, NULL, NULL);
   SaveAndSetDebugTimerInterrupt (TRUE);

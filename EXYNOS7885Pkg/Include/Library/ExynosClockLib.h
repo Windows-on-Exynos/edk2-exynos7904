@@ -3,7 +3,10 @@
 
 #include <Uefi.h>
 
-#define CMU_PERI_BASE 0x10010000
+#define CMU_PERI_BASE   0x12060000
+
+#define CLK_GATE_MMC0   (CMU_PERI_BASE + 0x0104)
+#define CLK_DIV_MMC0    (CMU_PERI_BASE + 0x00FB)
 
 typedef enum {
     CLK_UART0,

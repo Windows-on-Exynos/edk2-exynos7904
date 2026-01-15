@@ -24,6 +24,45 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/TimerLib.h>
 
+#define MMC0_BASE  0x13500000
+
+#define DW_MMC_CTRL    0x000
+#define DW_MMC_PWREN   0x004
+#define DW_MMC_CLKDIV  0x008
+#define DW_MMC_CLKENA  0x010
+#define DW_MMC_STATUS  0x048
+
+STATIC
+VOID
+DwMmcEarlyInit (VOID)
+{
+    // Power
+    MmioWrite32(MMC0_BASE + DW_MMC_PWREN, 1);
+
+    // Clock interno
+    MmioWrite32(MMC0_BASE + DW_MMC_CLKENA, 1);
+
+    // Div = 0
+    MmioWrite32(MMC0_BASE + DW_MMC_CLKDIV, 0);
+
+    // Reset
+    MmioWrite32(MMC0_BASE + DW_MMC_CTRL, 0x7);
+}
+
+STATIC
+EFI_STATUS
+DwMmcSendCmd (
+    UINT32 Cmd,
+    UINT32 Arg
+    )
+{
+    MmioWrite32(MMC0_BASE + 0x02C, Cmd);
+    MmioWrite32(MMC0_BASE + 0x028, Arg);
+
+    // esperar listo...
+    return EFI_SUCCESS;
+}
+
 /**
   Initialize the state information for the ExynosMmcDxe
 
@@ -39,6 +78,8 @@ ExynosMmcDxeInitialize (
   IN EFI_SYSTEM_TABLE *SystemTable)
 {
 	DEBUG((EFI_D_INFO, "[ExynosMmcDxe]: Initializing eMMC/SD Card Driver\n"));
+
+	DwMmcEarlyInit();
 
 	return EFI_SUCCESS;
 }
