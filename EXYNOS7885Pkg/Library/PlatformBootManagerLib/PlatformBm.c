@@ -6,6 +6,7 @@
   Copyright (c) 2004 - 2016, Intel Corporation. All rights reserved.
   Copyright (c) 2016, Linaro Ltd. All rights reserved.
   Copyright (c), 2017, Andrei Warkentin <andrey.warkentin@gmail.com>
+  Copyright (c), 2026, viZPilot. All rights reserved.
 
   This program and the accompanying materials are licensed and made available
   under the terms and conditions of the BSD License which accompanies this
@@ -620,7 +621,7 @@ PlatformBootManagerWaitCallback (
   Status = BootLogoUpdateProgress (
              White.Pixel,
              Black.Pixel,
-             L"Press Power Button for Setup Utility\n",
+             L"Press VOL+ Button for viZBIOS Setup Utility\n",
              White.Pixel,
              (Timeout - TimeoutRemain) * 100 / Timeout,
              0

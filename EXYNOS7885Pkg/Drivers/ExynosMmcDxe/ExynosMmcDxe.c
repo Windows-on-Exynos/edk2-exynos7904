@@ -77,9 +77,9 @@ ExynosMmcDxeInitialize (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE *SystemTable)
 {
-	DEBUG((EFI_D_INFO, "[ExynosMmcDxe]: Initializing eMMC/SD Card Driver\n"));
-
+	DEBUG((EFI_D_INFO, "[ExynosMmcDxe]: Initializing eMMC Driver\n"));
 	DwMmcEarlyInit();
-
+	DwMmcSendCmd(0, 0);      // GO_IDLE
+	DwMmcSendCmd(1, 0x40FF); // INIT
 	return EFI_SUCCESS;
 }
