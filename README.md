@@ -181,5 +181,7 @@ Zhuowei for making edk2-pixel3
 
 All the people in ``EDKII pain and misery, struggles and disappointment`` on Discord.
 
-bootlogo is from rickliu2000's [Lumia930Pkg](https://github.com/rickliu2000/Lumia930Pkg).
+Boot Logo is from rickliu2000's [Lumia930Pkg](https://github.com/rickliu2000/Lumia930Pkg).
+
+[Thefurrylover](https://github.com/computacionlite-collab) for testing EDK2 on his Samsung A30 because my old Samsung A30 is broken
 

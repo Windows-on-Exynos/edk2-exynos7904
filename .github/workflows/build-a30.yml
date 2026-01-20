@@ -1,0 +1,22 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: CI Build
+      run: chmod +x ci-build-a30.sh && ./ci-build-a30.sh
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: Galaxy A30
+        path: ./workspace/boot-a30.tar
