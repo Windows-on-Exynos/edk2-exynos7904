@@ -30,7 +30,7 @@ Also see [EDK2 website](https://github.com/tianocore/tianocore.github.io/wiki/Us
 
 First run ./firstrun.sh
 
-Then, ./build.sh.
+Then, ./build.sh or ./build-a30.sh if your device is Samsung Galaxy A30.
 
 This should make a boot.tar image to be flashed in ODIN, you may need to adjust.
 
