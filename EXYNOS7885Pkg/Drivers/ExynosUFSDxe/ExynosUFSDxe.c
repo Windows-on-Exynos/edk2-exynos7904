@@ -24,6 +24,12 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/TimerLib.h>
 
+#include "ufs.h"
+
+STATIC EXYNOS_UFS_HOST *_UFS[SCSI_MAX_INITIATOR] = { NULL, };
+STATIC INTN _UFS_INDEX = 0;
+STATIC INTN _UFS_CURR_HOST = 0;
+
 /**
   Initialize the state information for the ExynosClockDxe
 
@@ -40,5 +46,5 @@ ExynosUFSDxeInitialize (
 {
 	DEBUG((EFI_D_INFO, "[ExynosUFSDxe]: Initializing Exynos UFS Driver\n"));
 
-	return EFI_SUCCESS;
+	return 0;
 }
