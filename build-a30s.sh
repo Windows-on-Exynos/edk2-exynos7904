@@ -6,8 +6,8 @@ set -e
 ./build_bootshim.sh
 GCC5_AARCH64_PREFIX=aarch64-linux-gnu- build -j$(nproc) -s -n 0 -a AARCH64 -t GCC5 -p EXYNOS7885Pkg/Devices/a30s.dsc
 cat BootShim/BootShim.bin workspace/Build/EXYNOS7885Pkg/DEBUG_GCC5/FV/EXYNOS7885PKG_UEFI.fd device_specific/a30s.dtb > workspace/UEFI
-mkbootimg --kernel workspace/UEFI -o workspace/boot.img
-mkbootimg --kernel workspace/UEFI -o workspace/boot-a30s.img
+./tools/mkbootimg.py --kernel workspace/UEFI -o workspace/boot.img
+./tools/mkbootimg.py --kernel workspace/UEFI -o workspace/boot-a30s.img
 cd workspace/
 tar -c boot.img -f boot-a30s.tar
 cd ..
