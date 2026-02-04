@@ -21,7 +21,7 @@
   gEXYNOS7885PkgTokenSpaceGuid.PcdUefiMemPoolSize|0x03300000         # UefiMemorySize, DXE heap size
   gArmTokenSpaceGuid.PcdCpuVectorBaseAddress|0x80C40000
 
-  # Framebuffer (720x1280)
+  # Framebuffer (720x1520)
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferAddress|0x0ec000000
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferWidth|720
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferHeight|1520
