@@ -134,7 +134,7 @@ READ_LOCK_STATUS   = TRUE
   # SoC Drivers
   #
   INF EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
-  INF EXYNOS7885Pkg/Drivers/ExynosMmcDxe/ExynosMmcDxe.inf
+  INF EXYNOS7885Pkg/Drivers/ExynosUSBDxe/Dwc3Exynos.inf
 
   #
   # Platform Dxes

@@ -1,0 +1,45 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = A30sEmmc
+  FILE_GUID                      = ED88D06E-304B-40B9-8B08-30A55E0B10B6
+  MODULE_TYPE                     = DXE_DRIVER
+  VERSION_STRING                  = 0.3
+  ENTRY_POINT                     = A30sEmmcEntryPoint
+
+[Sources]
+  A30sEmmc.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  UefiLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  DebugLib
+  ArmLib
+  IoLib
+  BaseLib
+  CacheMaintenanceLib
+  TimerLib
+  BaseMemoryLib
+  MemoryAllocationLib
+
+[FixedPcd]
+  gEXYNOS7885PkgTokenSpaceGuid.PcdEmmcBaseAddress
+  gEXYNOS7885PkgTokenSpaceGuid.PcdEmmcClockFrequency
+  gEXYNOS7885PkgTokenSpaceGuid.PcdEmmcBusWidth
+  gEXYNOS7885PkgTokenSpaceGuid.PcdEmmcFifoDepth
+
+[Protocols]
+  gEfiBlockIoProtocolGuid
+  gEfiDevicePathProtocolGuid
+
+[Guids]
+  gEfiEventVirtualAddressChangeGuid
+  gEfiEventExitBootServicesGuid
+
+[Depex]
+  TRUE

@@ -1,0 +1,61 @@
+## @file
+#  Exynos 9830 UFS Host Controller DXE Driver
+#
+#  Adapted from Samsung lk3rd bootloader sources:
+#    - dev/scsi/ufs.c                    (core UFS HCI)
+#    - platform/exynos9830/ufs.c          (board init, clocks, GPIOs)
+#    - platform/exynos9830/ufs-cal-9830.c (PHY calibration sequences)
+#
+#  Produces EFI_BLOCK_IO_PROTOCOL for each enabled UFS LUN (0-7).
+#  Performs full CAL (ufs_cal_pre_link, post_link, pre_pmc, post_pmc).
+#
+#  Copyright (c) 2024, EDK2 Port Authors.
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010019
+  BASE_NAME                      = ExynosUfs9610Dxe
+  FILE_GUID                      = 1579B2A5-AC6F-4107-8616-728E34E3857B
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = ExynosUfs9610DxeEntry
+
+[Sources]
+  ExynosUfs.h
+  ExynosUfsCal9610.c
+  ExynosUfsHci.c
+  ExynosUfsDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  DebugLib
+  TimerLib
+  IoLib
+  DevicePathLib
+
+[Protocols]
+  gEfiBlockIoProtocolGuid              ## PRODUCES
+  gEfiDevicePathProtocolGuid           ## PRODUCES
+  gEfiDiskIoProtocolGuid               ## NOTIFY
+  gEfiSimpleFileSystemProtocolGuid     ## CONSUMES (dump only)
+
+[Guids]
+  gEfiEventReadyToBootGuid       ## CONSUMES (ReadyToBoot signal event)
+
+[Depex]
+  TRUE
+
+[BuildOptions]
+  # Allow non-standard C99 (for compound literals / anonymous structs in LK code)
+  GCC:*_*_AARCH64_CC_FLAGS  = -std=gnu99 -Wno-address-of-packed-member
+  GCC:*_*_ARM_CC_FLAGS       = -std=gnu99 -Wno-address-of-packed-member
+  MSFT:*_*_*_CC_FLAGS        = /TC
