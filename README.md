@@ -10,7 +10,7 @@ First, clone EDK2.
 
 ```
 cd ..
-git clone https://github.com/tianocore/edk2 --recursive -b edk2-stable202302
+git clone https://github.com/tianocore/edk2 --recursive -b edk2-stable202408.01
 git clone https://github.com/tianocore/edk2-platforms.git
 ```
 
@@ -178,5 +178,7 @@ If you made it this far, congratulations but you're here to get the shell fullsc
 SimpleFbDxe screen driver is from imbushuo's [Lumia950XLPkg](https://github.com/WOA-Project/Lumia950XLPkg).
 
 Zhuowei for making edk2-pixel3
+
+halal-beef and Sota4Ever for porting UFS to Exynos9830 and Exynos9610
 
 All the people in ``EDKII pain and misery, struggles and disappointment`` on Discord.
