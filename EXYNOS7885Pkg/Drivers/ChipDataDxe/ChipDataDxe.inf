@@ -1,0 +1,27 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = ChipDataDxe
+  FILE_GUID                      = 8D394C45-AA99-4209-91C7-6C079057EFD1
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = InitChipDataDriver
+
+[Sources]
+  ChipDataDxe.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  DebugLib
+  IoLib
+
+[Protocols]
+  gEfiChipDataProtocolGuid
+
+[Depex]
+  TRUE

@@ -134,6 +134,12 @@ READ_LOCK_STATUS   = TRUE
   INF EmbeddedPkg/Drivers/VirtualKeyboardDxe/VirtualKeyboardDxe.inf
 
   #
+  # SoC Drivers
+  #
+  INF EXYNOS7885Pkg/Drivers/GpioDxe/GpioDxe.inf
+  INF EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
+
+  #
   # Platform Dxes
   #
   INF EXYNOS7885Pkg/Drivers/EXYNOS7885PkgDxe/EXYNOS7885PkgDxe.inf
@@ -160,11 +166,11 @@ READ_LOCK_STATUS   = TRUE
   #
   INF EmbeddedPkg/Application/AndroidFastboot/AndroidFastbootApp.inf
 
-  #
-  # FAT filesystem + GPT/MBR partitioning
-  #
   INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
+
+  INF EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
+
   INF FatPkg/EnhancedFatDxe/Fat.inf
   INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
 

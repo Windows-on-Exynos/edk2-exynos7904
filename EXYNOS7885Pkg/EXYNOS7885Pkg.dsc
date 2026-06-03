@@ -32,6 +32,10 @@
   RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
   VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
   VariableFlashInfoLib|MdeModulePkg/Library/BaseVariableFlashInfoLib/BaseVariableFlashInfoLib.inf
+  GpioBankLib|EXYNOS7885Pkg/Library/GpioBankLib/GpioBankLib.inf
+  PlatformUfsLib|EXYNOS7885Pkg/Library/PlatformUfsLib/PlatformUfsLib.inf
+  UfsCalAdapterLib|EXYNOS7885Pkg/Library/UfsCalAdapterLib/UfsCalAdapterLib.inf
+
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
   VariablePolicyLib|MdeModulePkg/Library/VariablePolicyLib/VariablePolicyLibRuntimeDxe.inf
@@ -203,6 +207,13 @@
   # Virtual Keyboard
   #
   EmbeddedPkg/Drivers/VirtualKeyboardDxe/VirtualKeyboardDxe.inf
+
+  #
+  # SoC Drivers
+  #
+  EXYNOS7885Pkg/Drivers/GpioDxe/GpioDxe.inf
+  EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
+  EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
 
   #
   # Platform Dxes

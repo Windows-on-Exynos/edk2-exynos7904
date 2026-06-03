@@ -1,2 +1,0 @@
-URL:    https://github.com/halal-beef/lk_linaro/tree/3830-ww-dev-linaro-e850-96/dev/scsi
-BRANCH: 3830-ww-dev-linaro-e850-96

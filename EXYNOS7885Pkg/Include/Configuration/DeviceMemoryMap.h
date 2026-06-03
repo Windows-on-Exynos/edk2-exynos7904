@@ -73,16 +73,22 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
     {"HLOS 4",             0xED85A000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
 
 //--------------------- Register ---------------------
-    {"ChipInfo",           0x10000000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
-	{"UFS",		 		   0x13520000, 0x00005000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
-    {"GIC Distributor",    0x12301000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-    {"GIC Redistributors", 0x12302000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-    {"PinCtrl 1",          0x11850000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-    {"PinCtrl 2",          0x11C20000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-	{"ADC",                0x11C30000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-    {"SPEEDY",             0x11A10000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-    {"HSI2C",              0x138A0000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
-    {"HSI2C5 USI",         0x139B0000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO, DEVICE},
+    {"Chip Info",          0x10000000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl SHUB",       0x11080000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl ALIVE",      0x11850000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"PMU",                0x11860000, 0x00010000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Speedy",             0x11A10000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl CMGP",       0x11C20000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Clock Controller",   0x12100000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Gic Distributor",    0x12301000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Gic Redistributor",  0x12302000, 0x00006000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl FSYS",       0x13490000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Sysreg FSYS",        0x13410000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"UFS UniPro",         0x13510000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"UFS HCI",            0x13520000, 0x00005000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl TOP",        0x139B0000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Decon",              0x148B0000, 0x00010000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl DISPAUD",    0x14A60000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 
     /* Terminator for MMU */
     { "Terminator", 0, 0, 0, 0, 0, 0, 0}};
