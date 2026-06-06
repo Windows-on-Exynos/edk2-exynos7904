@@ -32,14 +32,14 @@
   __DATE__"\0"                         /* BiosReleaseDate */
 
 #define TYPE1_STRINGS                                   \
-  "Google\0"                         /* Manufacturer */ \
-  "Pixel 3 XL\0"                     /* Product Name */ \
+  "Motorola\0"                       /* Manufacturer */ \
+  "One Action\0"                     /* Product Name */ \
   "None\0"                           /* Version */      \
   "                    \0"           /* 20 character buffer */
 
 #define TYPE2_STRINGS                                     \
-  "Google\0"                         /* Manufacturer */   \
-  "Pixel 3 XL\0"                     /* Product Name */   \
+  "Motorola\0"                       /* Manufacturer */   \
+  "One Action\0"                     /* Product Name */   \
   "R0\0"                             /* Version */        \
   "Serial Not Set\0"                 /* Serial */         \
   "Base of Chassis\0"                /* board location */ \
@@ -47,16 +47,16 @@
   "R2\0"                             /* Version */
 
 #define TYPE3_STRINGS                                   \
-  "ARM LTD\0"                        /* Manufacturer */ \
+  "Samsung Electronics LTD\0"        /* Manufacturer */ \
   "None\0"                           /* Version */      \
   "Serial Not Set\0"                 /* Serial  */
 
 #define TYPE4_STRINGS                                               \
-  "BGA-1156\0"                       /* socket type */              \
-  "ARM LTD\0"                        /* manufactuer */              \
-  "Cortex-A57\0"                     /* processor 1 description */  \
+  "Exynos9609\0"                     /* socket type */              \
+  "Samsung Electronics LTD\0"        /* manufactuer */              \
+  "Cortex-A53\0"                     /* processor 1 description */  \
   "Cortex-A53\0"                     /* processor 2 description */  \
-  "Cortex-A72\0"                     /* processor 2 description */  \
+  "Cortex-A73\0"                     /* processor 2 description */  \
   "0xd03\0"                          /* A53 part number */          \
   "0xd07\0"                          /* A57 part number */          \
   "0xd08\0"                          /* A72 part number */

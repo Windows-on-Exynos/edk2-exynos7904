@@ -107,6 +107,7 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
   INF EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe.inf
   INF EmbeddedPkg/MetronomeDxe/MetronomeDxe.inf
+  INF EmbeddedPkg/SimpleTextInOutSerial/SimpleTextInOutSerial.inf
 
   #
   # Multiple Console IO support
@@ -127,6 +128,8 @@ READ_LOCK_STATUS   = TRUE
   #
   # GPIO
   #
+  INF EXYNOS7885Pkg/Drivers/GenericKeypadDeviceDxe/GenericKeypadDeviceDxe.inf
+  INF EXYNOS7885Pkg/Drivers/KeypadDxe/KeypadDxe.inf
 
   #
   # Virtual Keyboard
@@ -184,7 +187,15 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
   INF MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
   INF MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
-  INF RuleOverride = ACPITABLE EXYNOS7885Pkg/AcpiTables/AcpiTables.inf
+
+  #
+  # FDT support
+  #
+  INF EmbeddedPkg/Drivers/DtPlatformDxe/DtPlatformDxe.inf
+
+  FILE FREEFORM = 25462CDA-221F-47DF-AC1D-259CFAA4E326 {
+    SECTION RAW = EXYNOS7885Pkg/FdtBlob/exynos9610-motorola-troika.dtb
+  }
 
   #
   # SMBIOS Support

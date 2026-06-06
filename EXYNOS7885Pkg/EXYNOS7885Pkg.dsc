@@ -187,6 +187,7 @@
   MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
   EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe.inf
   EmbeddedPkg/MetronomeDxe/MetronomeDxe.inf
+  EmbeddedPkg/SimpleTextInOutSerial/SimpleTextInOutSerial.inf
 
   MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf
   MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe.inf
@@ -202,6 +203,12 @@
   MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
 
   MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
+
+  #
+  # Keypad
+  #
+  EXYNOS7885Pkg/Drivers/GenericKeypadDeviceDxe/GenericKeypadDeviceDxe.inf
+  EXYNOS7885Pkg/Drivers/KeypadDxe/KeypadDxe.inf
 
   #
   # Virtual Keyboard
@@ -257,7 +264,11 @@
   MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
   MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf
   MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
-  EXYNOS7885Pkg/AcpiTables/AcpiTables.inf
+  
+  #
+  # FDT Support
+  #
+  EmbeddedPkg/Drivers/DtPlatformDxe/DtPlatformDxe.inf
 
   #
   # SMBIOS Support

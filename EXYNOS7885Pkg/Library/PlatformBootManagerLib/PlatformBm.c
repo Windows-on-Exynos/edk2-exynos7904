@@ -517,10 +517,10 @@ PlatformBootManagerBeforeConsole (
     (EFI_DEVICE_PATH_PROTOCOL *)&mUsbKeyboard, NULL);
 
   //
-  // Now add the device path of all handles with QcomKeypadDeviceProtocolGuid
+  // Now add the device path of all handles with ExynosKeypadDeviceProtocolGuid
   // on them to ConIn.
   //
-  FilterAndProcess (&gEFIDroidKeypadDeviceProtocolGuid, NULL, AddInput);
+  FilterAndProcess (&gExynosKeypadDeviceProtocolGuid, NULL, AddInput);
   // Register setup key then
   PlatformRegisterSetupKey();
 
