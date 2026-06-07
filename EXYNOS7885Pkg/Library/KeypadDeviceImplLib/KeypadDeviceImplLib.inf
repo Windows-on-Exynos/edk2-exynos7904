@@ -16,5 +16,4 @@
   EXYNOS7885Pkg/EXYNOS7885Pkg.dec
 
 [LibraryClasses]
-  KeypadDeviceHelperLib
   TimerLib

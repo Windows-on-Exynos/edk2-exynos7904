@@ -69,8 +69,8 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
     {"HLOS 1.5",           0x94200000, 0x2BA00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
     /*Memory hole 0xbbc00000 -> 0xc0000000*/
     {"HLOS 3",             0xBFC00000, 0x2D400000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
-    {"Display Reserved",   0xED000000, 0x0085A000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
-    {"HLOS 4",             0xED85A000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
+    {"Display Reserved",   0xED000000, 0x01400000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
+    {"HLOS 4",             0xEE400000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
 
 //--------------------- Register ---------------------
     {"Chip Info",          0x10000000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
@@ -82,10 +82,13 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
 	{"Clock Controller",   0x12100000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Gic Distributor",    0x12301000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Gic Redistributor",  0x12302000, 0x00006000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
-	{"Pinctrl FSYS",       0x13490000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"CMU FSYS",           0x13400000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Sysreg FSYS",        0x13410000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"Pinctrl FSYS",       0x13490000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"DW MMC0",            0x13500000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"UFS UniPro",         0x13510000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"UFS HCI",            0x13520000, 0x00005000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"DW MMC2",            0x13550000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Pinctrl TOP",        0x139B0000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Decon",              0x148B0000, 0x00010000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Pinctrl DISPAUD",    0x14A60000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},

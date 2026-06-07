@@ -33,6 +33,7 @@
   VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
   VariableFlashInfoLib|MdeModulePkg/Library/BaseVariableFlashInfoLib/BaseVariableFlashInfoLib.inf
   GpioBankLib|EXYNOS7885Pkg/Library/GpioBankLib/GpioBankLib.inf
+  MmcPlatformLib|EXYNOS7885Pkg/Library/PlatformMmcLib/PlatformMmcLib.inf
   PlatformUfsLib|EXYNOS7885Pkg/Library/PlatformUfsLib/PlatformUfsLib.inf
   UfsCalAdapterLib|EXYNOS7885Pkg/Library/UfsCalAdapterLib/UfsCalAdapterLib.inf
 
@@ -108,11 +109,11 @@
   gEfiMdePkgTokenSpaceGuid.PcdDefaultTerminalType|4
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVendor|L"Windows on Exynos 9610"
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"0.2-rc1"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"0.3-rc1"
 
   # We only boot one processor here!
-  gArmPlatformTokenSpaceGuid.PcdCoreCount|1
-  gArmPlatformTokenSpaceGuid.PcdClusterCount|1
+  gArmPlatformTokenSpaceGuid.PcdCoreCount|8
+  gArmPlatformTokenSpaceGuid.PcdClusterCount|2
 
   #
   # ARM General Interrupt Controller
@@ -219,8 +220,11 @@
   # SoC Drivers
   #
   EXYNOS7885Pkg/Drivers/GpioDxe/GpioDxe.inf
+  EXYNOS7885Pkg/Drivers/SpeedyDxe/SpeedyDxe.inf
+  EXYNOS7885Pkg/Drivers/PmicDxe/S2mpu09Dxe.inf
   EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
   EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosSdMmcDxe/ExynosSdMmcDxe.inf
 
   #
   # Platform Dxes

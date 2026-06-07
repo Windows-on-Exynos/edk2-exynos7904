@@ -72,7 +72,6 @@
   #
   # Keypad
   #
-  KeypadDeviceHelperLib|EXYNOS7885Pkg/Library/KeypadDeviceHelperLib/KeypadDeviceHelperLib.inf
   KeypadDeviceImplLib|EXYNOS7885Pkg/Library/KeypadDeviceImplLib/KeypadDeviceImplLib.inf
 
   # ARM PL011 UART Driver
@@ -335,5 +334,5 @@
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultReceiveFifoDepth|32
 
 [PcdsDynamicHii.common.DEFAULT]
-  #gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|L"Timeout"|gEfiGlobalVariableGuid|0x0|0 # Variable: L"Timeout"
+  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|L"Timeout"|gEfiGlobalVariableGuid|0x0|0 # Variable: L"Timeout"
 

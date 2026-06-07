@@ -27,3 +27,4 @@
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferHeight|2520
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferVisibleWidth|1080
   gEXYNOS7885PkgTokenSpaceGuid.PcdMipiFrameBufferVisibleHeight|2520
+  gEXYNOS7885PkgTokenSpaceGuid.PcdInitS2mpu09|TRUE

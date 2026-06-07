@@ -1,0 +1,32 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = SdMmcDxe
+  FILE_GUID                      = A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = InitDwMmcDriver
+
+[Sources]
+  SdMmcDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  DebugLib
+  IoLib
+  TimerLib
+  MemoryAllocationLib
+  BaseMemoryLib
+  CacheMaintenanceLib
+  DevicePathLib
+  MmcPlatformLib
+
+[Protocols]
+  gEfiBlockIoProtocolGuid
+
+[Depex]
+  TRUE
