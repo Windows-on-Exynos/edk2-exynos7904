@@ -36,6 +36,7 @@
   MmcPlatformLib|EXYNOS7885Pkg/Library/PlatformMmcLib/PlatformMmcLib.inf
   PlatformUfsLib|EXYNOS7885Pkg/Library/PlatformUfsLib/PlatformUfsLib.inf
   UfsCalAdapterLib|EXYNOS7885Pkg/Library/UfsCalAdapterLib/UfsCalAdapterLib.inf
+  ExynosClockLib|EXYNOS7885Pkg/Library/ExynosClockLib/ExynosClockLib.inf
 
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
@@ -220,6 +221,7 @@
   # SoC Drivers
   #
   EXYNOS7885Pkg/Drivers/GpioDxe/GpioDxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
   EXYNOS7885Pkg/Drivers/SpeedyDxe/SpeedyDxe.inf
   EXYNOS7885Pkg/Drivers/PmicDxe/S2mpu09Dxe.inf
   EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf

@@ -24,7 +24,13 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/TimerLib.h>
 
+#include <Library/ExynosClockLib.h>
+
+#include <Protocol/EfiGpio.h>
+
 // #include <Protocol/ExynosClock.h>
+
+STATIC EFI_EXYNOS_GPIO_PROTOCOL *mGpioProtocol;
 
 /**
   Initialize the state information for the ExynosClockDxe
@@ -40,7 +46,16 @@ ExynosClockDxeInitialize (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE *SystemTable)
 {
+	EFI_STATUS Status;
+
+	Status = gBS->LocateProtocol (&gEfiExynosGpioProtocolGuid, NULL, (VOID *)&mGpioProtocol);
+	if (EFI_ERROR (Status)) {
+		DEBUG ((EFI_D_ERROR, "Failed to Locate GPIO Protocol! Status = %r\n", Status));
+		return Status;
+	}
+
 	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Initializing Exynos Clock Driver\n"));
+	ExynosClockInit();
 
 	return EFI_SUCCESS;
 }

@@ -27,6 +27,7 @@
 
 [Protocols]
   gEfiBlockIoProtocolGuid
+  gEfiEraseBlockProtocolGuid
 
 [Depex]
   TRUE

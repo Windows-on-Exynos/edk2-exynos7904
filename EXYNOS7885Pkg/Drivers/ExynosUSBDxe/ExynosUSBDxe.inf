@@ -1,0 +1,28 @@
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ExynosUSBDxe
+  FILE_GUID                      = DAA12AD1-7B1F-44ED-ABEF-5DE9175263FF
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = ExynosUsbEntry
+
+[Sources]
+  ExynosUSBDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  BaseLib
+  PrintLib
+  DebugLib
+  TimerLib
+  IoLib
+
+[Protocols]
+
+[Depex]
+  TRUE

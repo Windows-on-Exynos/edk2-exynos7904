@@ -9,9 +9,8 @@
 #include <Library/DevicePathLib.h>
 #include <Library/DwMmcRegs.h>
 #include <Library/MmcPlatformLib.h>
-#include "SdMmcDxeInternal.h"
-#include <Protocol/BlockIo.h>
 #include <Protocol/DevicePath.h>
+#include "SdMmcDxeInternal.h"
 
 STATIC CONST UINT8 mTuningPattern4Bit[TUNING_BLOCK_SIZE] = {
   0xFF, 0x0F, 0xFF, 0x00, 0xFF, 0xCC, 0xC3, 0xCC,
@@ -22,6 +21,25 @@ STATIC CONST UINT8 mTuningPattern4Bit[TUNING_BLOCK_SIZE] = {
   0xCC, 0x33, 0xCC, 0xCF, 0xFF, 0xEF, 0xFF, 0xEE,
   0xFF, 0xFD, 0xFF, 0xFD, 0xDF, 0xFF, 0xBF, 0xFF,
   0xBB, 0xFF, 0xF7, 0xFF, 0xF7, 0x7F, 0x7B, 0xDE,
+};
+
+STATIC CONST UINT8 mTuningPattern8Bit[TUNING_BLOCK_SIZE_EMMC] = {
+  0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x00,
+  0xFF, 0xFF, 0xCC, 0xCC, 0xCC, 0x33, 0xCC, 0xCC,
+  0xCC, 0x33, 0x33, 0xCC, 0xCC, 0xCC, 0xFF, 0xFF,
+  0xFF, 0xEE, 0xFF, 0xFF, 0xFF, 0xEE, 0xEE, 0xFF,
+  0x33, 0xFF, 0xFF, 0xFF, 0xCC, 0xFF, 0xFF, 0xFF,
+  0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF,
+  0xCC, 0xCC, 0x33, 0xCC, 0xCC, 0xCC, 0x33, 0x33,
+  0xCC, 0xCC, 0xCC, 0x33, 0xCC, 0x33, 0xCC, 0xCC,
+  0xCC, 0x33, 0x33, 0xCC, 0xCC, 0xCC, 0x33, 0x33,
+  0xCC, 0xCC, 0xCC, 0xFF, 0xFF, 0xFF, 0xEE, 0xEE,
+  0xFF, 0xFF, 0xFF, 0xEE, 0xEE, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF,
+  0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0xFF,
 };
 
 STATIC DW_MMC_HOST  mHost;
@@ -129,11 +147,17 @@ STATIC
 EFI_STATUS
 DwMmcChangeClock (UINT32 TargetClk)
 {
-  UINT32 BoardHz = mHost.BusHz / mHost.PhaseDivide;
+  UINT32 BoardHz;
   UINT32 Div;
 
-  if (!BoardHz)
+  // PhaseDivide is the CIU clock divider from BusHz
+  if (mHost.PhaseDivide > 0)
+    BoardHz = mHost.BusHz / mHost.PhaseDivide;
+  else
     BoardHz = mHost.BusHz;
+
+  if (!BoardHz)
+    return EFI_DEVICE_ERROR;
 
   DwMmcControlClken (CLK_DISABLE);
 
@@ -146,6 +170,36 @@ DwMmcChangeClock (UINT32 TargetClk)
 
   mHost.CardClock = (Div == 0) ? BoardHz : (BoardHz / (2 * Div));
   return EFI_SUCCESS;
+}
+
+STATIC
+VOID
+DwMmcChangeClksel (UINT32 PassIndex)
+{
+  UINT32 ClkselVal;
+  UINT32 Reg;
+
+  if (PassIndex > 15)
+    PassIndex = 0;
+
+  ClkselVal = RD (DWMCI_CLKSEL);
+  ClkselVal &= ~0x7FU;
+  ClkselVal |= (PassIndex / 2);
+
+  // AXI_SAMPLING_PATH_SEL for sample phases 6-7
+  Reg = RD (DWMCI_AXI_BURST_LEN);
+  if ((PassIndex / 2) >= 6)
+    Reg |= AXI_SAMPLING_PATH_SEL;
+  else
+    Reg &= ~AXI_SAMPLING_PATH_SEL;
+  WR (DWMCI_AXI_BURST_LEN, Reg);
+
+  if (PassIndex % 2 == 0)
+    ClkselVal &= ~CLKSEL_SAMPLE_CLK_TUNING_1;
+  else
+    ClkselVal |= CLKSEL_SAMPLE_CLK_TUNING_1;
+
+  WR (DWMCI_CLKSEL, ClkselVal);
 }
 
 STATIC
@@ -168,10 +222,8 @@ DwMmcSetIos (UINT32 Clock, UINT32 ClkselVal)
   else
     WR (DWMCI_CTYPE, CTYPE_1BIT);
 
-  if (mHost.BusMode == 1) {
-    SET (DWMCI_UHS_REG, UHS_REG_DDR);
-  } else if (mHost.BusMode == 3) {
-    // HS400 — DDR + DQS strobe
+  if (mHost.BusMode == 1 || mHost.BusMode == 3) {
+    // DDR or HS400 — DDR mode
     SET (DWMCI_UHS_REG, UHS_REG_DDR);
   } else {
     CLR (DWMCI_UHS_REG, UHS_REG_DDR);
@@ -184,10 +236,15 @@ DwMmcSetIos (UINT32 Clock, UINT32 ClkselVal)
 
   if (mHost.IsTuned) {
     Reg = EXYNOS_CLKSEL_UP_SAMPLE (Reg, mHost.TunedSamplePhase);
+    // Apply AXI sampling path for phases 6-7
     if ((mHost.TunedSamplePhase & 0x7) >= 6)
       SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
     else
       CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+    if (mHost.IsFineTuned)
+      Reg |= CLKSEL_SAMPLE_CLK_TUNING_1;
+    else
+      Reg &= ~CLKSEL_SAMPLE_CLK_TUNING_1;
   }
 
   WR (DWMCI_CLKSEL, Reg);
@@ -204,7 +261,9 @@ DwMmcSetIosSimple (UINT32 Clock)
 {
   UINT32 ClkselVal;
 
-  if (mHost.BusMode == 1)
+  if (mHost.BusMode == 3)
+    ClkselVal = mHost.Hs400Clksel;
+  else if (mHost.BusMode == 1)
     ClkselVal = mHost.DdrClksel;
   else
     ClkselVal = mHost.SdrClksel;
@@ -330,7 +389,7 @@ DwMmcPrepareData (UINT32 BlockSize, UINT32 BlockCnt,
   if (IsWrite) {
     WriteBackDataCacheRange (Buf, BlockSize * BlockCnt);
   } else {
-    WriteBackDataCacheRange (Buf, BlockSize * BlockCnt);
+    // Invalidate cache before DMA so DMA can write to memory cleanly
     InvalidateDataCacheRange (Buf, BlockSize * BlockCnt);
   }
 
@@ -533,6 +592,8 @@ DwMmcDataTransfer (VOID)
         MicroSecondDelay (1);
 
       DwMmcEndData ();
+      // Invalidate data cache for reads AFTER DMA completes
+      // to ensure CPU sees fresh data written by DMA
       if (mDmaIsRead)
         InvalidateDataCacheRange (mDmaBuffer, mDmaBlockSize * mDmaBlockCnt);
       return EFI_SUCCESS;
@@ -585,7 +646,7 @@ DwMmcSendCommandData (
     if (EFI_ERROR (Status))
       return Status;
   }
-  if (BlockCnt > 1) {
+  if ((BlockCnt > 1) && (mHost.CardType != CARD_TYPE_MMC)) {
     UINT32 StopFlag = DwMmcReadyCmd (CMD12_STOP_TRAN, 0,
                        MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_BUSY,
                        FALSE, FALSE);
@@ -677,7 +738,10 @@ DwMmcSwitchCmd (UINT8 Set, UINT8 Index, UINT8 Value)
   EFI_STATUS Status;
   UINT32     Arg, CardState;
 
-  Arg = (MMC_SWITCH_MODE_WRITE_BYTE << 24) | (Index << 16) | (Value << 8) | Set;
+  // JEDEC eMMC CMD6 argument: bits[25:24]=Access Mode, bits[7:0]=Cmd Set
+  // Set = Access Mode (0x03 = MMC_SWITCH_MODE_WRITE_BYTE)
+  // MMC_CMD_SET_NORMAL (0x00) = Normal Cmd Set
+  Arg = (Set << 24) | (Index << 16) | (Value << 8) | MMC_CMD_SET_NORMAL;
 
   Status = DwMmcSendCommand (CMD6_SWITCH_FUNC, Arg,
              MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY, NULL);
@@ -685,6 +749,270 @@ DwMmcSwitchCmd (UINT8 Set, UINT8 Index, UINT8 Value)
     return Status;
 
   return DwMmcGetCardStatus (1000, &CardState);
+}
+
+STATIC
+EFI_STATUS
+DwMmcSetCacheCtrl (BOOLEAN Enable)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  if (mHost.CacheEnabled == Enable)
+    return EFI_SUCCESS;
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_CACHE_CTRL,
+             Enable ? EXT_CSD_CACHE_ENABLE : EXT_CSD_CACHE_DISABLE);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: eMMC cache %s failed: %r\n",
+      Enable ? "enable" : "disable", Status));
+    return Status;
+  }
+
+  mHost.CacheEnabled = Enable;
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC cache %s\n",
+    Enable ? "enabled" : "disabled"));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcSanitize (VOID)
+{
+  EFI_STATUS Status;
+  UINT32     CardState, Timeout;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  DEBUG ((EFI_D_WARN, "DWMMC: Starting eMMC sanitize...\n"));
+
+  // Card must be in TRAN state
+  Status = DwMmcGetCardStatus (1000, &CardState);
+  if (EFI_ERROR (Status) || CardState != 4) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Sanitize: card not in TRAN state (%d)\n", CardState));
+    return EFI_DEVICE_ERROR;
+  }
+
+  // Issue CMD38 with SANITIZE argument (BIT(26) set)
+  Status = DwMmcSendCommand (CMD38_ERASE, MMC_SANITIZE_ARG,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Sanitize CMD38 failed: %r\n", Status));
+    return Status;
+  }
+
+  // Wait for sanitize completion (can take minutes)
+  for (Timeout = 0; Timeout < MMC_ERASE_TIMEOUT_SEC * 10; Timeout++) {
+    MicroSecondDelay (100000);  // 100ms poll interval
+    Status = DwMmcGetCardStatus (0, &CardState);
+    if (!EFI_ERROR (Status) && (CardState == 4))  // TRAN state
+      break;
+  }
+
+  if (Timeout >= MMC_ERASE_TIMEOUT_SEC * 10) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Sanitize timeout\n"));
+    return EFI_TIMEOUT;
+  }
+
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC sanitize complete\n"));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcTrim (
+  EFI_LBA Lba,
+  UINTN   BlockCount,
+  BOOLEAN Secure
+  )
+{
+  EFI_STATUS Status;
+  UINT32     CardState, Timeout, Start, End;
+
+  if (mHost.CardType != CARD_TYPE_MMC || BlockCount == 0)
+    return EFI_UNSUPPORTED;
+
+  Status = DwMmcGetCardStatus (1000, &CardState);
+  if (EFI_ERROR (Status) || CardState != 4) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Trim: card not in TRAN state (%d)\n", CardState));
+    return EFI_DEVICE_ERROR;
+  }
+
+  Start = (UINT32)(Lba);
+  End   = (UINT32)(Lba + BlockCount - 1);
+
+  // Set trim start (CMD35)
+  Status = DwMmcSendCommand (CMD35_ERASE_GROUP_START, Start,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Trim start failed: %r\n", Status));
+    return Status;
+  }
+
+  // Set trim end (CMD36)
+  Status = DwMmcSendCommand (CMD36_ERASE_GROUP_END, End,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Trim end failed: %r\n", Status));
+    return Status;
+  }
+
+  // Issue CMD38 with TRIM argument
+  Status = DwMmcSendCommand (CMD38_ERASE,
+             Secure ? MMC_ERASE_SECURE_TRIM : MMC_ERASE_TRIM,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Trim CMD38 failed: %r\n", Status));
+    return Status;
+  }
+
+  for (Timeout = 0; Timeout < MMC_ERASE_TIMEOUT_SEC * 10; Timeout++) {
+    MicroSecondDelay (100000);
+    Status = DwMmcGetCardStatus (0, &CardState);
+    if (!EFI_ERROR (Status) && (CardState == 4))
+      break;
+  }
+
+  if (Timeout >= MMC_ERASE_TIMEOUT_SEC * 10)
+    return EFI_TIMEOUT;
+
+  DEBUG ((EFI_D_INFO, "DWMMC: %s %lu blocks from LBA %lu\n",
+    Secure ? "Secure trim" : "Trim", BlockCount, Lba));
+  return EFI_SUCCESS;
+}
+
+/*
+ * eMMC discard operation — same as trim but with DISCARD argument
+ * Discard = trim that doesn't guarantee data preservation
+ * Called from DwMmcErase when discard is requested.
+ */
+STATIC
+EFI_STATUS
+DwMmcDiscard (
+  EFI_LBA Lba,
+  UINTN   BlockCount
+  )
+{
+  EFI_STATUS Status;
+  UINT32     CardState, Timeout, Start, End;
+
+  if (mHost.CardType != CARD_TYPE_MMC || BlockCount == 0)
+    return EFI_UNSUPPORTED;
+
+  Status = DwMmcGetCardStatus (1000, &CardState);
+  if (EFI_ERROR (Status) || CardState != 4) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Discard: card not in TRAN state (%d)\n", CardState));
+    return EFI_DEVICE_ERROR;
+  }
+
+  Start = (UINT32)Lba;
+  End   = (UINT32)(Lba + BlockCount - 1);
+
+  Status = DwMmcSendCommand (CMD35_ERASE_GROUP_START, Start,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Discard start failed: %r\n", Status));
+    return Status;
+  }
+
+  Status = DwMmcSendCommand (CMD36_ERASE_GROUP_END, End,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Discard end failed: %r\n", Status));
+    return Status;
+  }
+
+  Status = DwMmcSendCommand (CMD38_ERASE, MMC_ERASE_DISCARD,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Discard CMD38 failed: %r\n", Status));
+    return Status;
+  }
+
+  for (Timeout = 0; Timeout < MMC_ERASE_TIMEOUT_SEC * 10; Timeout++) {
+    MicroSecondDelay (100000);
+    Status = DwMmcGetCardStatus (0, &CardState);
+    if (!EFI_ERROR (Status) && (CardState == 4))
+      break;
+  }
+
+  if (Timeout >= MMC_ERASE_TIMEOUT_SEC * 10)
+    return EFI_TIMEOUT;
+
+  DEBUG ((EFI_D_INFO, "DWMMC: Discard %lu blocks from LBA %lu\n", BlockCount, Lba));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcPowerOffNotification (BOOLEAN PowerOffLong)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  // Notify the device that power is about to be removed
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_POWER_OFF_NOTIFICATION,
+             PowerOffLong ? EXT_CSD_POWER_OFF_LONG : EXT_CSD_POWER_ON);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Power-off notification failed: %r\n", Status));
+    return Status;
+  }
+
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC power-off notification sent (%s)\n",
+    PowerOffLong ? "long" : "normal"));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcSetBkops (BOOLEAN Enable)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_BKOPS_EN,
+             Enable ? EXT_CSD_BKOPS_ENABLE : 0x00);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: BKOPS %s failed: %r\n",
+      Enable ? "enable" : "disable", Status));
+    // Non-fatal: some eMMC don't support BKOPS
+    return Status;
+  }
+
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC BKOPS %s\n",
+    Enable ? "enabled" : "disabled"));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcSetBootWp (UINT8 WpConfig)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_BOOT_WP, WpConfig);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Boot WP config 0x%02x failed: %r\n",
+      WpConfig, Status));
+    return Status;
+  }
+
+  DEBUG ((EFI_D_WARN, "DWMMC: Boot WP configured: 0x%02x\n", WpConfig));
+  return EFI_SUCCESS;
 }
 
 STATIC
@@ -712,6 +1040,10 @@ DwMmcSetBusWidth (UINT32 BusWidth)
   case 8:
     if (mHost.BusMode == 1 || mHost.BusMode == 3) {
       ExtCsdBusWidth = EXT_CSD_BUS_WIDTH_8BIT_DDR;
+      // Enhanced Strobe bit (0x80) set only for HS400ES
+      if ((mHost.BusMode == 3) && (mHost.CardCaps & MMC_HS_400MHZ_ES)) {
+        ExtCsdBusWidth |= EXT_CSD_BUS_WIDTH_STROBE;
+      }
     } else {
       ExtCsdBusWidth = EXT_CSD_BUS_WIDTH_8BIT_SDR;
     }
@@ -725,7 +1057,7 @@ DwMmcSetBusWidth (UINT32 BusWidth)
   if (mHost.CardType == CARD_TYPE_MMC) {
     Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE, EXT_CSD_BUS_WIDTH, ExtCsdBusWidth);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "DWMMC: EXT_CSD_BUS_WIDTH=%d failed: %r\n", ExtCsdBusWidth, Status));
+      DEBUG ((EFI_D_ERROR, "DWMMC: EXT_CSD_BUS_WIDTH=0x%02x failed: %r\n", ExtCsdBusWidth, Status));
       return Status;
     }
   }
@@ -757,6 +1089,7 @@ DwMmcSetTimingAndBus (UINT32 Timing, UINT32 Clock, UINT32 BusWidth, UINT32 BusMo
   if (EFI_ERROR (Status))
     return Status;
 
+  // Set bus width in host controller
   if (BusWidth == 1)
     WR (DWMCI_CTYPE, CTYPE_1BIT);
   else if (BusWidth == 4)
@@ -805,46 +1138,53 @@ EFI_STATUS
 DwMmcExecuteTuning (UINT32 CmdIdx)
 {
   EFI_STATUS Status;
-  UINT32     ClkselBase, ClkselVal, Phase, Sample;
+  UINT32     ClkselBase;
   UINT16     GoodBitmap;
   UINT32     GoodCount, BestStart, BestLen, Start, Len, Median;
+  UINT32     PassIndex;
+  BOOLEAN    IsEmmc;
+  UINT32     TuneBlockSize;
+  CONST UINT8 *TunePattern;
+
+  IsEmmc = (mHost.CardType == CARD_TYPE_MMC);
+
+  if (IsEmmc) {
+    TuneBlockSize = TUNING_BLOCK_SIZE_EMMC;
+    TunePattern   = mTuningPattern8Bit;
+  } else {
+    TuneBlockSize = TUNING_BLOCK_SIZE;
+    TunePattern   = mTuningPattern4Bit;
+  }
 
   ClkselBase = RD (DWMCI_CLKSEL);
   GoodBitmap = 0;
 
+  // Clear sample timing for tuning start
   WR (DWMCI_CLKSEL, ClkselBase & ~0xFFU);
   CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-  WR (DWMCI_CARDTHRCTL, (512 << 16) | 1);
+  WR (DWMCI_CARDTHRCTL, (TuneBlockSize << 16) | 1);
 
-  DEBUG ((EFI_D_WARN, "DWMMC: Tuning start (CMD%d), clksel=0x%08x\n",
-    CmdIdx, ClkselBase));
+  DEBUG ((EFI_D_WARN, "DWMMC: Tuning start (CMD%d), %s, clksel=0x%08x\n",
+    CmdIdx, IsEmmc ? "eMMC" : "SD", ClkselBase));
 
-  for (Phase = 0; Phase <= 15; Phase++) {
-    Sample = Phase & 0x7;
-    ClkselVal = (ClkselBase & ~0x7U) | Sample;
+  // 16-phase tuning loop (pass_index 0-15) using DwMmcChangeClksel helper
+  for (PassIndex = 0; PassIndex <= 15; PassIndex++) {
+    DwMmcChangeClksel (PassIndex);
 
-    if (Sample >= 6)
-      SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-    else
-      CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-
-    WR (DWMCI_CLKSEL, ClkselVal);
-
-    ZeroMem (mTuningBuf, TUNING_BLOCK_SIZE);
+    ZeroMem (mTuningBuf, sizeof (mTuningBuf));
     Status = DwMmcSendCommandData (CmdIdx, 0,
                MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
-               NULL, FALSE, TUNING_BLOCK_SIZE, 1, mTuningBuf);
+               NULL, FALSE, TuneBlockSize, 1, mTuningBuf);
 
     if (!EFI_ERROR (Status)) {
-      if (CompareMem (mTuningBuf, (VOID *)mTuningPattern4Bit,
-                      TUNING_BLOCK_SIZE) == 0) {
-        GoodBitmap |= (1 << Phase);
+      if (CompareMem (mTuningBuf, (VOID *)TunePattern,
+                      TuneBlockSize) == 0) {
+        GoodBitmap |= (1 << PassIndex);
       }
     }
   }
 
   WR (DWMCI_CARDTHRCTL, 0);
-  WR (DWMCI_CLKSEL, ClkselBase);
   CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
 
   if (GoodBitmap == 0xFFFF) {
@@ -904,12 +1244,17 @@ TuningCalcMedian:
     GoodBitmap, BestStart, BestStart + GoodCount - 1, GoodCount, Median));
 
   if (GoodCount == 0) {
-    DEBUG ((EFI_D_ERROR, "DWMMC: Tuning failed — no good phases\n"));
+    DEBUG ((EFI_D_ERROR, "DWMMC: Tuning failed -- no good phases\n"));
     return EFI_DEVICE_ERROR;
   }
 
-  mHost.TunedSamplePhase = Median;
+  // Decode 16-phase result back to 8-bit sample + fine_tune
+  mHost.TunedSamplePhase = Median / 2;
+  mHost.IsFineTuned      = (Median % 2) ? TRUE : FALSE;
   mHost.IsTuned          = TRUE;
+
+  DEBUG ((EFI_D_WARN, "DWMMC: Tuning selected phase=%d fine_tune=%d\n",
+    mHost.TunedSamplePhase, mHost.IsFineTuned));
 
   return EFI_SUCCESS;
 }
@@ -919,18 +1264,26 @@ EFI_STATUS
 DwMmcConfigHs400 (VOID)
 {
   UINT32 DqsEn, DlineCtrl;
+  BOOLEAN IsHs400Es;
+
+  IsHs400Es = (mHost.CardCaps & MMC_HS_400MHZ_ES) != 0;
 
   DqsEn = DATA_STROBE_EN |
           HS400_AXI_NON_BLOCKING_WRITE |
           HS400_DQS_EN_DEFAULT;
 
-  WR (DWMCI_HS400_DQS_EN, DqsEn);
+  if (IsHs400Es) {
+    DqsEn |= DWMCI_RESP_RCLK_MODE;
+    DlineCtrl = HS400_ES_DLINE_CTRL_DEFAULT;
+  } else {
+    DlineCtrl = HS400_DLINE_CTRL_DEFAULT;
+  }
 
-  DlineCtrl = HS400_DLINE_CTRL_DEFAULT;
+  WR (DWMCI_HS400_DQS_EN, DqsEn);
   WR (DWMCI_HS400_DLINE_CTRL, DlineCtrl);
 
-  DEBUG ((EFI_D_WARN, "DWMMC: HS400 regs: DQS_EN=0x%08x DLINE=0x%08x\n",
-    DqsEn, DlineCtrl));
+  DEBUG ((EFI_D_WARN, "DWMMC: HS400 regs: DQS_EN=0x%08x DLINE=0x%08x%s\n",
+    DqsEn, DlineCtrl, IsHs400Es ? " (Enhanced Strobe)" : ""));
   return EFI_SUCCESS;
 }
 
@@ -951,8 +1304,9 @@ DwMmcVoltageSwitch (VOID)
   }
 
   WR (DWMCI_CLKENA, CLK_DISABLE);
-  MicroSecondDelay (10000);  // 10ms
+  MicroSecondDelay (10000);  // 10ms for clock to settle
 
+  // Switch voltage regulator
   Status = SdVoltageSwitch ();
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "DWMMC: SdVoltageSwitch failed: %r\n", Status));
@@ -962,17 +1316,26 @@ DwMmcVoltageSwitch (VOID)
 
   SET (DWMCI_UHS_REG, UHS_REG_V18);
 
-  mHost.MaxClock = (mHost.BusHz / mHost.PhaseDivide) < 200000000
-                   ? (mHost.BusHz / mHost.PhaseDivide)
-                   : 200000000;
+  // Update MaxClock for 1.8V signalling (up to 200 MHz for SDR104)
+  {
+    UINT32 BoardHz = (mHost.PhaseDivide > 0)
+                     ? (mHost.BusHz / mHost.PhaseDivide)
+                     : mHost.BusHz;
+    mHost.MaxClock = (BoardHz < 200000000) ? BoardHz : 200000000;
+  }
 
-  MicroSecondDelay (10000);  // 10ms
+  MicroSecondDelay (10000);  // 10ms for LDO/regulator to stabilize
 
   WR (DWMCI_CLKENA, CLK_ENABLE);
   MicroSecondDelay (1000);
 
-  if (RD (DWMCI_STATUS) & DATA_BUSY) {
-    DEBUG ((EFI_D_WARN, "DWMMC: Voltage switch — DATA_BUSY still set after 1.8V switch, continuing\n"));
+  for (Timeout = 100; Timeout > 0; Timeout--) {
+    if (!(RD (DWMCI_STATUS) & DATA_BUSY))
+      break;
+    MicroSecondDelay (100);
+  }
+  if (!Timeout) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Voltage switch -- DAT0 still busy after 1.8V switch, continuing\n"));
   }
 
   DEBUG ((EFI_D_WARN, "DWMMC: Voltage switch to 1.8V complete, MaxClock=%d MHz\n",
@@ -1018,18 +1381,18 @@ STATIC
 EFI_STATUS
 DwMmcSetInitState (VOID)
 {
-  mHost.CardRca         = 0;
-  mHost.BlockSize       = MMC_MAX_BLOCK_LEN;
-  mHost.BusWidth        = 1;
-  mHost.BusMode         = 0;
-  mHost.CardClock       = 400000;
-  mHost.CardPresent     = FALSE;
-  mHost.IsSdhc          = FALSE;
-  mHost.IsHighSpeed     = FALSE;
-  mHost.InitDone        = FALSE;
+  mHost.CardRca          = 0;
+  mHost.BlockSize        = MMC_MAX_BLOCK_LEN;
+  mHost.BusWidth         = 1;
+  mHost.BusMode          = 0;
+  mHost.CardClock        = 400000;
+  mHost.CardPresent      = FALSE;
+  mHost.IsSdhc           = FALSE;
+  mHost.IsHighSpeed      = FALSE;
+  mHost.InitDone         = FALSE;
   mHost.TunedSamplePhase = 0;
-  mHost.IsTuned         = FALSE;
-  mHost.IsFineTuned     = FALSE;
+  mHost.IsTuned          = FALSE;
+  mHost.IsFineTuned      = FALSE;
 
   DwMmcHostInit ();
   return DwMmcSetIosSimple (400000);
@@ -1078,8 +1441,7 @@ DwMmcSdInitCard (VOID)
       mHost.OcR = Resp[0];
       mHost.CardType = (Resp[0] & OCR_HCS) ? CARD_TYPE_SDHC : CARD_TYPE_SD;
       mHost.IsSdhc   = (mHost.CardType == CARD_TYPE_SDHC);
-      mHost.IsUhsSupported = (Resp[0] & OCR_S18R) ? TRUE :
-                             (OcrArg == SD_HC_OCR);
+      mHost.IsUhsSupported = (Resp[0] & OCR_S18R) ? TRUE : (OcrArg == SD_HC_OCR);
       break;
     }
     MicroSecondDelay (1000);
@@ -1092,17 +1454,22 @@ DwMmcSdInitCard (VOID)
     DEBUG ((EFI_D_WARN, "DWMMC: CMD11 voltage switch (early, after ACMD41)...\n"));
     Status = DwMmcSendCommand (CMD11_SWITCH_VOLTAGE, 0,
                MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, Resp);
-    if (!EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_WARN, "DWMMC: CMD11 succeeded, executing voltage switch sequence\n"));
-    } else {
-      DEBUG ((EFI_D_WARN, "DWMMC: CMD11 failed (%r) — slot may already be at 1.8V, forcing voltage setup\n",
-        Status));
-    }
-    Status = DwMmcVoltageSwitch ();
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_WARN, "DWMMC: Voltage switch setup failed (%r), UHS modes will be unavailable\n",
+      DEBUG ((EFI_D_WARN, "DWMMC: CMD11 timed out (%r), forcing voltage switch (Exynos quirk)\n",
         Status));
+    } else if ((Resp[0] & R1_ERROR)) {
+      DEBUG ((EFI_D_WARN, "DWMMC: CMD11 R1 error (0x%08x), UHS modes unavailable\n",
+        Resp[0]));
       mHost.IsUhsSupported = FALSE;
+    }
+    if (mHost.IsUhsSupported) {
+      DEBUG ((EFI_D_WARN, "DWMMC: Executing voltage switch sequence...\n"));
+      Status = DwMmcVoltageSwitch ();
+      if (EFI_ERROR (Status)) {
+        DEBUG ((EFI_D_WARN, "DWMMC: Voltage switch failed (%r), UHS modes unavailable\n",
+          Status));
+        mHost.IsUhsSupported = FALSE;
+      }
     }
   }
 
@@ -1118,29 +1485,51 @@ DwMmcEmmcInitCard (VOID)
 {
   EFI_STATUS Status;
   UINT32     Resp[4], Retry;
+  UINT32     OcrArg;
 
   Status = DwMmcSendCommand (CMD0_GO_IDLE, 0, 0, NULL);
   if (EFI_ERROR (Status))
     return Status;
   MicroSecondDelay (2000);
 
-  for (Retry = 0; Retry < 10000; Retry++) {
+  // First try with sector mode + high voltage (HS200/HS400 capable)
+  OcrArg = OCR_VOLT_27_36 | OCR_SEC_MODE | OCR_HCS;
+  for (Retry = 0; Retry < 1000; Retry++) {
     Status = DwMmcSendCommand (CMD1_SEND_OP_COND,
-               OCR_VOLT_27_36 | OCR_SEC_MODE,
+               OcrArg,
                MMC_RSP_PRESENT, Resp);
     if (Status == EFI_SUCCESS) {
-      mHost.OcR = Resp[0];
-      mHost.CardType = (Resp[0] & OCR_SEC_MODE) ? CARD_TYPE_MMC : CARD_TYPE_MMC;
-      mHost.IsSdhc = FALSE;
-      break;
+      if (Resp[0] & OCR_BUSY) {
+        mHost.OcR = Resp[0];
+        mHost.CardType = CARD_TYPE_MMC;
+        mHost.IsSdhc = (Resp[0] & OCR_HCS) ? TRUE : FALSE;
+        break;
+      }
     }
     MicroSecondDelay (1000);
   }
 
-  if (Retry >= 1000)
-    return EFI_TIMEOUT;
+  if (Retry >= 1000) {
+    // Retry without SEC_MODE for older eMMC
+    OcrArg = OCR_VOLT_27_36;
+    for (Retry = 0; Retry < 100; Retry++) {
+      Status = DwMmcSendCommand (CMD1_SEND_OP_COND,
+                 OcrArg,
+                 MMC_RSP_PRESENT, Resp);
+      if (Status == EFI_SUCCESS && (Resp[0] & OCR_BUSY)) {
+        mHost.OcR = Resp[0];
+        mHost.CardType = CARD_TYPE_MMC;
+        mHost.IsSdhc = FALSE;
+        break;
+      }
+      MicroSecondDelay (1000);
+    }
+    if (Retry >= 100)
+      return EFI_TIMEOUT;
+  }
 
-  DEBUG ((EFI_D_WARN, "DWMMC: eMMC ready, OCR=0x%08x\n", mHost.OcR));
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC ready, OCR=0x%08x, HCS=%d\n",
+    mHost.OcR, mHost.IsSdhc));
   return EFI_SUCCESS;
 }
 
@@ -1196,7 +1585,7 @@ DwMmcIdentifyCard (VOID)
       UINT8  Year  = DwMmcExtractBits (CidVal, 4, 7) + 1997;
 
       DEBUG ((EFI_D_WARN,
-        "DWMMC: eMMC CID — MID=0x%02x OID=0x%04x PRV=%d.%d PSN=0x%08x %04d-%02d\n",
+        "DWMMC: eMMC CID -- MID=0x%02x OID=0x%04x PRV=%d.%d PSN=0x%08x %04d-%02d\n",
         Mmid, Oid, (Prv >> 4) & 0xF, Prv & 0xF, Psn, Year, Month));
     } else {
       UINT8  Mmid = DwMmcExtractBits (CidVal, 120, 127);
@@ -1207,7 +1596,7 @@ DwMmcIdentifyCard (VOID)
       UINT8  Year  = DwMmcExtractBits (CidVal, 4, 7) + 2000;
 
       DEBUG ((EFI_D_WARN,
-        "DWMMC: SD CID — MID=0x%02x OID=%c%c PRV=%d.%d PSN=0x%08x %04d-%02d\n",
+        "DWMMC: SD CID -- MID=0x%02x OID=%c%c PRV=%d.%d PSN=0x%08x %04d-%02d\n",
         Mmid, (Oid >> 8) & 0xFF, Oid & 0xFF,
         (Prv >> 4) & 0xF, Prv & 0xF, Psn, Year, Month));
     }
@@ -1229,24 +1618,57 @@ DwMmcDecodeMmcInfo (VOID)
 {
   EFI_STATUS Status;
   UINT64     Capacity;
+  UINT32     ExtCsdRev;
 
   mHost.Capacity  = 0;
   mHost.BootSize  = 0;
   mHost.RpmbSize  = 0;
 
   if (mHost.CardType == CARD_TYPE_MMC) {
+    // Check CSD_STRUCTURE >= 4 (EXT_CSD supported from eMMC 4.0+)
     if ((mHost.Csd[3] >> 26) >= 4) {
       Status = DwMmcSendExtCsd (mExtCsdBuf);
       if (!EFI_ERROR (Status)) {
+        ExtCsdRev = mExtCsdBuf[EXT_CSD_REV];
+
         Capacity = (UINT64)DwMmcExtractExtCsd (mExtCsdBuf,
                      EXT_CSD_SEC_CNT, EXT_CSD_SEC_CNT + 3);
         Capacity *= MMC_MAX_BLOCK_LEN;
         mHost.Capacity  = Capacity;
         mHost.NumBlocks = (UINT32)(Capacity / MMC_MAX_BLOCK_LEN);
-        mHost.CardCaps  = mExtCsdBuf[EXT_CSD_CARD_TYPE];
 
+        // Card type capabilities from EXT_CSD
+        mHost.CardCaps = mExtCsdBuf[EXT_CSD_CARD_TYPE];
+
+        // Check for HS400 enhanced strobe support (eMMC 5.1+)
+        if (ExtCsdRev >= 8) {
+          if (mExtCsdBuf[EXT_CSD_STROBE_SUPPORT] & 0x01) {
+            mHost.CardCaps |= MMC_HS_400MHZ_ES;
+            DEBUG ((EFI_D_WARN, "DWMMC: eMMC HS400ES supported\n"));
+          }
+        }
+
+        // Boot/RPMB size in MB for display, sectors for BlockIo
         mHost.BootSize = mExtCsdBuf[EXT_CSD_BOOT_MULT] * 128 / 1024;
         mHost.RpmbSize = mExtCsdBuf[EXT_CSD_RPMB_MULT] * 128 / 1024;
+
+        // Store boot partition sizes in sectors for BlockIo exposure
+        mBoot1Blocks = mExtCsdBuf[EXT_CSD_BOOT_MULT] * 128 / 512;
+        mBoot2Blocks = mExtCsdBuf[EXT_CSD_BOOT_MULT] * 128 / 512;
+        mRpmbBlocks  = mExtCsdBuf[EXT_CSD_RPMB_MULT] * 128 / 512;
+
+        DEBUG ((EFI_D_WARN,
+          "DWMMC: eMMC EXT_CSD: rev=%d.%d, partition_support=0x%02x, "
+          "cache_size=%d KB, pre_eol=0x%02x, life_a=0x%02x, life_b=0x%02x\n",
+          (ExtCsdRev >> 4) & 0xF, ExtCsdRev & 0xF,
+          mExtCsdBuf[EXT_CSD_PARTITION_SUPPORT],
+          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 0]) |
+          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 1] << 8) |
+          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 2] << 16) |
+          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 3] << 24),
+          mExtCsdBuf[EXT_CSD_PRE_EOL_INFO],
+          mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_A],
+          mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_B]));
       }
     }
   }
@@ -1277,11 +1699,9 @@ DwMmcDecodeSdInfo (VOID)
 
   if (CsdVer >= 1) {
     // SDHC/SDXC (CSD v2.0): 22-bit C_SIZE at concatenated bits [48:69]
+    // Per SD spec: MemoryCapacity = (C_SIZE + 1) * 512 KBytes
     CSize = DwMmcExtractBits (mHost.Csd, 48, 69);
-    if (CSize >= 0xFFFF)
-      mHost.Capacity = CSize * 512 * 1024ULL;
-    else
-      mHost.Capacity = (CSize + 1) * 512 * 1024ULL;
+    mHost.Capacity = (CSize + 1) * 512 * 1024ULL;
   } else {
     // SDSC (CSD v1.0)
     UINT32 Rbl  = 1 << DwMmcExtractBits (mHost.Csd, 80, 83);
@@ -1319,9 +1739,13 @@ DwMmcDecodeSdInfo (VOID)
       DEBUG ((EFI_D_WARN, "DWMMC: SD High Speed supported\n"));
     }
     if (FuncGroup1 & 0x1C) {  // Any UHS mode
-      mHost.CardCaps |= SD_UHS_SDR50 | SD_UHS_SDR104;
-      DEBUG ((EFI_D_WARN, "DWMMC: SD UHS-I modes supported (caps=0x%04x)\n",
-        FuncGroup1));
+      if (mHost.IsUhsSupported) {
+        mHost.CardCaps |= SD_UHS_SDR50 | SD_UHS_SDR104;
+        DEBUG ((EFI_D_WARN, "DWMMC: SD UHS-I modes supported (caps=0x%04x)\n",
+          FuncGroup1));
+      } else {
+        DEBUG ((EFI_D_WARN, "DWMMC: SD UHS-I modes reported by card but 1.8V not available (S18R=0)\n"));
+      }
     }
   }
 
@@ -1363,7 +1787,7 @@ DwMmcSdAdjustSpeed (VOID)
     DEBUG ((EFI_D_WARN, "DWMMC: SD card does not support 4-bit\n"));
   }
 
-  if (mHost.CardCaps & SD_UHS_SDR104) {
+  if (mHost.IsUhsSupported && (mHost.CardCaps & SD_UHS_SDR104)) {
     UINT8 SwSt[64];
 
     DwMmcSdSwitchCmd (SD_SWITCH_MODE_SWITCH, 2, 0, SwSt);   // Group 3: Driver Strength = Type B
@@ -1392,6 +1816,8 @@ DwMmcSdAdjustSpeed (VOID)
           SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
         else
           CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+        if (mHost.IsFineTuned)
+          Reg |= CLKSEL_SAMPLE_CLK_TUNING_1;
         WR (DWMCI_CLKSEL, Reg);
       }
       DEBUG ((EFI_D_WARN, "DWMMC: UHS SDR104 @ %d MHz\n",
@@ -1404,7 +1830,7 @@ DwMmcSdAdjustSpeed (VOID)
   }
 
 SdTrySdr50:
-  if (mHost.CardCaps & SD_UHS_SDR50) {
+  if (mHost.IsUhsSupported && (mHost.CardCaps & SD_UHS_SDR50)) {
     UINT8 SwSt[64];
 
     DwMmcSdSwitchCmd (SD_SWITCH_MODE_SWITCH, 2, 0, SwSt);   // Group 3: Driver Strength = Type B
@@ -1434,6 +1860,8 @@ SdTrySdr50:
           SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
         else
           CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+        if (mHost.IsFineTuned)
+          Reg |= CLKSEL_SAMPLE_CLK_TUNING_1;
         WR (DWMCI_CLKSEL, Reg);
       }
       DEBUG ((EFI_D_WARN, "DWMMC: UHS SDR50 @ %d MHz\n",
@@ -1460,47 +1888,59 @@ EFI_STATUS
 DwMmcEmmcAdjustSpeed (VOID)
 {
   EFI_STATUS Status;
-  BOOLEAN    Tuned = FALSE;
 
-  mHost.BusMode = 0;           // SDR
-  mHost.CardClock = 26000000;
+  mHost.BusMode    = 0;           // SDR
+  mHost.CardClock  = 26000000;
+  mHost.BusWidth   = 8;
+  mHost.IsTuned    = FALSE;
+
   WR (DWMCI_CTYPE, CTYPE_8BIT);
-  mHost.BusWidth = 8;
-  DwMmcSetBusWidth (8);
   DwMmcSetIosSimple (26000000);
 
-  if (mHost.CardCaps & MMC_HS_400MHZ_DDR) {
+  // Try HS400 (including HS400ES) first
+  if (mHost.CardCaps & (MMC_HS_400MHZ_DDR | MMC_HS_400MHZ_ES)) {
+    UINT32  Hs200Phase = 0;
+    UINT32  Hs200FineTuned = FALSE;
+
+    DEBUG ((EFI_D_WARN, "DWMMC: Attempting HS400...\n"));
+
+    // Switch to HS (52 MHz DDR) with DDR timing
+    mHost.BusMode = 1;
     Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS, 52000000, 8, 1,
                mHost.DdrClksel);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: HS timing failed (%r)\n", Status));
       goto TryHs200;
     }
+
+    // Set 8-bit DDR bus width on card
     Status = DwMmcSetBusWidth (8);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: BUS_WIDTH=8BIT_DDR failed (%r)\n", Status));
       goto TryHs200;
     }
 
+    // Switch to HS200 (200 MHz SDR) for tuning
+    mHost.BusMode = 2;
     Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS200, 200000000, 8, 2,
                mHost.Hs200Clksel);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: HS200 timing failed (%r)\n", Status));
       goto TryDdr52;
     }
-    Status = DwMmcSetBusWidth (8);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_WARN, "DWMMC: HS400: BUS_WIDTH=8BIT_SDR failed (%r)\n", Status));
-      goto TryDdr52;
-    }
 
+    // Execute tuning at HS200
     Status = DwMmcExecuteTuning (CMD21_SEND_TUNING_BLOCK);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: HS200 tuning failed (%r)\n", Status));
       goto TryDdr52;
     }
-    Tuned = TRUE;
 
+    // Save tuned phase from HS200
+    Hs200Phase = mHost.TunedSamplePhase;
+    Hs200FineTuned = mHost.IsFineTuned;
+
+    // Apply HS200 tune to CLKSEL
     {
       UINT32 Reg = mHost.Hs200Clksel;
       Reg = EXYNOS_CLKSEL_UP_SAMPLE (Reg, mHost.TunedSamplePhase);
@@ -1508,91 +1948,109 @@ DwMmcEmmcAdjustSpeed (VOID)
         SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
       else
         CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+      if (mHost.IsFineTuned)
+        Reg |= CLKSEL_SAMPLE_CLK_TUNING_1;
       WR (DWMCI_CLKSEL, Reg);
     }
 
+    // Switch back to HS (52 MHz DDR) to prepare for HS400 transition
     mHost.IsTuned = FALSE;
     Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS, 52000000, 8, 1,
                mHost.DdrClksel);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: back-to-HS failed (%r), staying at HS200\n", Status));
       mHost.IsTuned = TRUE;
-      // Re-apply tuned CLKSEL for HS200
-      {
-        UINT32 Reg = mHost.Hs200Clksel;
-        Reg = EXYNOS_CLKSEL_UP_SAMPLE (Reg, mHost.TunedSamplePhase);
-        if ((mHost.TunedSamplePhase & 0x7) >= 6)
-          SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-        else
-          CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-        WR (DWMCI_CLKSEL, Reg);
-      }
+      mHost.TunedSamplePhase = Hs200Phase;
+      mHost.IsFineTuned = Hs200FineTuned;
       mHost.BusMode  = 2;
       mHost.MaxClock  = 200000000;
       mHost.CardClock = 200000000;
+      DEBUG ((EFI_D_WARN, "DWMMC: eMMC HS200 @ 200 MHz SDR 8-bit (HS400 fallback)\n"));
       goto EmmcspeedDone;
     }
+
+    // Re-set 8-bit DDR bus width (HS timing switch may have reset this)
+    MicroSecondDelay (5000);
     Status = DwMmcSetBusWidth (8);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_WARN, "DWMMC: HS400: BUS_WIDTH=8BIT_DDR post-HS failed (%r)\n", Status));
+      DEBUG ((EFI_D_WARN, "DWMMC: HS400: BUS_WIDTH=8BIT_DDR post-HS reconfig failed (%r)\n", Status));
     }
 
+    // Switch to HS400 (200 MHz DDR) timing
+    mHost.BusMode = 3;
     Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS400, 200000000, 8, 3,
                mHost.Hs400Clksel);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: HS400 timing failed (%r), staying at HS200\n", Status));
       mHost.IsTuned = TRUE;
-      {
-        UINT32 Reg = mHost.Hs200Clksel;
-        Reg = EXYNOS_CLKSEL_UP_SAMPLE (Reg, mHost.TunedSamplePhase);
-        if ((mHost.TunedSamplePhase & 0x7) >= 6)
-          SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-        else
-          CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
-        WR (DWMCI_CLKSEL, Reg);
-      }
+      mHost.TunedSamplePhase = Hs200Phase;
+      mHost.IsFineTuned = Hs200FineTuned;
       mHost.BusMode  = 2;
       mHost.MaxClock  = 200000000;
       mHost.CardClock = 200000000;
+      DEBUG ((EFI_D_WARN, "DWMMC: eMMC HS200 @ 200 MHz SDR 8-bit (HS400 fallback)\n"));
       goto EmmcspeedDone;
     }
 
+    // Configure HS400 DQS and delay line registers
     DwMmcConfigHs400 ();
 
+    // Final bus width re-assertion for HS400
     Status = DwMmcSetBusWidth (8);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS400: final BUS_WIDTH=8BIT_DDR failed (%r)\n", Status));
     }
 
+    // Restore tuned state: apply HS200 phase to HS400 CLKSEL
     mHost.IsTuned = TRUE;
+    mHost.TunedSamplePhase = Hs200Phase;
+    mHost.IsFineTuned = Hs200FineTuned;
 
-    DEBUG ((EFI_D_WARN, "DWMMC: eMMC HS400 @ 200 MHz DDR 8-bit\n"));
+    // Apply CLKSEL for HS400 mode using saved HS200 tuning
+    {
+      UINT32 Reg = mHost.Hs400Clksel;
+      Reg = EXYNOS_CLKSEL_UP_SAMPLE (Reg, mHost.TunedSamplePhase);
+      if ((mHost.TunedSamplePhase & 0x7) >= 6)
+        SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+      else
+        CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+      if (mHost.IsFineTuned)
+        Reg |= CLKSEL_SAMPLE_CLK_TUNING_1;
+      WR (DWMCI_CLKSEL, Reg);
+    }
+
+    DEBUG ((EFI_D_WARN, "DWMMC: eMMC HS400 @ 200 MHz DDR 8-bit%s\n",
+      (mHost.CardCaps & MMC_HS_400MHZ_ES) ? " (Enhanced Strobe)" : ""));
     goto EmmcspeedDone;
   }
 
 TryHs200:
   if (mHost.CardCaps & MMC_HS_200MHZ_SDR) {
-    Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS200, 200000000, 8, 2,
-               mHost.Hs200Clksel);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_WARN, "DWMMC: HS200 timing failed (%r)\n", Status));
-      goto TryDdr52;
-    }
+    DEBUG ((EFI_D_WARN, "DWMMC: Attempting HS200...\n"));
+
+    // Set bus width (SDR 8-bit) BEFORE switching to HS200 timing.
+    mHost.BusMode = 2;
     Status = DwMmcSetBusWidth (8);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS200 BUS_WIDTH=8BIT_SDR failed (%r)\n", Status));
       goto TryDdr52;
     }
 
-    //
+    Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS200, 200000000, 8, 2,
+               mHost.Hs200Clksel);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((EFI_D_WARN, "DWMMC: HS200 timing failed (%r)\n", Status));
+      goto TryDdr52;
+    }
+
     // Execute tuning at HS200
-    //
     Status = DwMmcExecuteTuning (CMD21_SEND_TUNING_BLOCK);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_WARN, "DWMMC: HS200 tuning failed (%r)\n", Status));
       goto TryDdr52;
     }
 
+    // Apply HS200 tuned phase to CLKSEL
     {
       UINT32 Reg = mHost.Hs200Clksel;
       Reg = EXYNOS_CLKSEL_UP_SAMPLE (Reg, mHost.TunedSamplePhase);
@@ -1600,6 +2058,8 @@ TryHs200:
         SET (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
       else
         CLR (DWMCI_AXI_BURST_LEN, AXI_SAMPLING_PATH_SEL);
+      if (mHost.IsFineTuned)
+        Reg |= CLKSEL_SAMPLE_CLK_TUNING_1;
       WR (DWMCI_CLKSEL, Reg);
     }
 
@@ -1610,6 +2070,8 @@ TryHs200:
 
 TryDdr52:
   if (mHost.CardCaps & (MMC_HS_52MHZ_DDR_1_8V | MMC_HS_52MHZ_DDR_1_2V)) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Attempting DDR52...\n"));
+    mHost.BusMode = 1;
     Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS, 52000000, 8, 1,
                mHost.DdrClksel);
     if (EFI_ERROR (Status)) {
@@ -1624,7 +2086,10 @@ TryDdr52:
     }
   }
 
+  // Try HS 52 MHz SDR
   if (mHost.CardCaps & MMC_HS_52MHZ) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Attempting HS52...\n"));
+    mHost.BusMode = 0;
     Status = DwMmcSetTimingAndBus (EXT_CSD_HS_TIMING_HS, 52000000, 8, 0,
                mHost.SdrClksel);
     if (EFI_ERROR (Status)) {
@@ -1639,7 +2104,10 @@ TryDdr52:
     }
   }
 
+  // Default fallback: 26 MHz SDR 8-bit
   {
+    DEBUG ((EFI_D_WARN, "DWMMC: Falling back to default 26 MHz...\n"));
+    mHost.BusMode = 0;
     Status = DwMmcSetTimingAndBus (0xFF, 26000000, 8, 0, mHost.SdrClksel);
     if (!EFI_ERROR (Status)) {
       Status = DwMmcSetBusWidth (8);
@@ -1651,7 +2119,8 @@ TryDdr52:
   }
 
 EmmcspeedDone:
-  DEBUG ((EFI_D_WARN, "DWMMC: eMMC final: %d MHz %s %d-bit%s\n",
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC final: %s %d MHz %s %d-bit%s\n",
+    (mHost.CardType == CARD_TYPE_MMC) ? "eMMC" : "",
     mHost.CardClock / 1000000,
     (mHost.BusMode == 1 || mHost.BusMode == 3) ? "DDR" : "SDR",
     mHost.BusWidth,
@@ -1693,21 +2162,29 @@ DwMmcInitAndIdentify (VOID)
     DwMmcDecodeMmcInfo ();
     DwMmcEmmcAdjustSpeed ();
 
-    // Enable RST_n
-    DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-      EXT_CSD_RST_N_FUNCTION, EXT_CSD_RST_N_ENABLE);
+    // Enable RST_n functionality if not already enabled
+    if (mExtCsdBuf[EXT_CSD_RST_N_FUNCTION] != EXT_CSD_RST_N_ENABLE) {
+      DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+        EXT_CSD_RST_N_FUNCTION, EXT_CSD_RST_N_ENABLE);
+    }
 
-    //
-    // Configure boot bus width: x1 in boot, x8 in runtime (0x22)
-    // Select user partition for normal I/O (PART_CONF = 0)
-    // Enable erase group definition for enhanced erase
-    //
-    DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-      EXT_CSD_BOOT_BUS_WIDTH, 0x22);
-    DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-      EXT_CSD_PART_CONF, 0x00);
-    DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-      EXT_CSD_ERASE_GROUP_DEF, 0x01);
+    // Enable eMMC cache for better performance
+    if (mExtCsdBuf[EXT_CSD_CACHE_SIZE] > 0) {
+      DwMmcSetCacheCtrl (TRUE);
+    } else {
+      DEBUG ((EFI_D_WARN, "DWMMC: eMMC has no cache (cache_size=0)\n"));
+    }
+
+    // Enable background operations (BKOPS) for sustained performance
+    // Per kernel: enable if card supports HS200/HS400 (eMMC 4.5+)
+    // Avoid using EXT_CSD_BKOPS_STATUS BIT(0) as gate — that bit is
+    // "BKOPS_URGENT" (needs attention), not "BKOPS supported".
+    if ((mExtCsdBuf[EXT_CSD_HPI_FEATURES] & 0x01) ||
+        (mHost.CardCaps & (MMC_HS_200MHZ_SDR | MMC_HS_400MHZ_DDR))) {
+      DwMmcSetBkops (TRUE);
+    } else {
+      DEBUG ((EFI_D_WARN, "DWMMC: eMMC BKOPS not supported (pre-v4.41 device)\n"));
+    }
   }
 
   {
@@ -1723,7 +2200,7 @@ DwMmcInitAndIdentify (VOID)
   mHost.CardPresent = TRUE;
   mHost.InitDone    = TRUE;
 
-  DEBUG ((EFI_D_WARN, "DWMMC: Init complete — %s, %u blocks, %d-bit, %d MHz\n",
+  DEBUG ((EFI_D_WARN, "DWMMC: Init complete -- %s, %u blocks, %d-bit, %d MHz\n",
     (mHost.CardType == CARD_TYPE_SD || mHost.CardType == CARD_TYPE_SDHC) ?
       "SD" : "eMMC",
     mHost.NumBlocks, mHost.BusWidth, mHost.CardClock / 1000000));
@@ -1731,15 +2208,249 @@ DwMmcInitAndIdentify (VOID)
 }
 
 typedef struct {
-  EFI_BLOCK_IO_PROTOCOL  BlockIo;
-  UINTN                  Signature;
-  EFI_BLOCK_IO_MEDIA     Media;
+  EFI_BLOCK_IO_PROTOCOL      BlockIo;
+  EFI_ERASE_BLOCK_PROTOCOL   EraseBlock;
+  UINTN                      Signature;
+  EFI_BLOCK_IO_MEDIA         Media;
+  UINT8                      Partition;  // EXT_CSD partition access value
 } DW_BLKDEV;
 
 #define DW_SIG  SIGNATURE_32 ('D','W','S','D')
 STATIC DW_BLKDEV *mDev;
 
 EFI_GUID gExynosSdCardGuid = EXYNOS_SD_CARD_GUID;
+
+STATIC
+EXYNOS_SD_DEVICE_PATH *
+DwMmcBuildDevicePath (UINT8 Slot)
+{
+  EXYNOS_SD_DEVICE_PATH *Dp;
+
+  Dp = AllocateZeroPool (sizeof (EXYNOS_SD_DEVICE_PATH));
+  if (!Dp)
+    return NULL;
+
+  Dp->VendorDp.Header.Type    = HARDWARE_DEVICE_PATH;
+  Dp->VendorDp.Header.SubType = HW_VENDOR_DP;
+  SetDevicePathNodeLength (&Dp->VendorDp.Header, sizeof (VENDOR_DEVICE_PATH) + sizeof (UINT8));
+  CopyMem (&Dp->VendorDp.Guid, &gExynosSdCardGuid, sizeof (EFI_GUID));
+  Dp->Slot = Slot;
+
+  SetDevicePathEndNode (&Dp->End);
+  return Dp;
+}
+
+STATIC
+EFI_STATUS
+DwMmcSelectPartition (
+  UINT8 Partition
+  )
+{
+  EFI_STATUS Status;
+  UINT8      PartConf;
+  BOOLEAN    IsBootPartition;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  if (Partition == mActivePartition)
+    return EFI_SUCCESS;
+
+  IsBootPartition = (Partition == EXT_CSD_PART_ACCESS_BOOT1 ||
+                     Partition == EXT_CSD_PART_ACCESS_BOOT2);
+
+  PartConf = Partition;
+
+  // When accessing boot partitions, also configure BOOT_BUS_WIDTH
+  if (IsBootPartition) {
+    // Configure boot bus width: x1 in boot, x8 in runtime (0x02)
+    // Bit[0]: Reset bus width to x1 during boot
+    // Bit[1]: Use x8 bus width in data transfer mode
+    Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+               EXT_CSD_BOOT_BUS_WIDTH, 0x02);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((EFI_D_WARN, "DWMMC: BOOT_BUS_WIDTH config failed: %r\n", Status));
+      // Non-fatal: continue anyway
+    }
+  } else {
+    // For user/RPMB/GP partitions, configure BOOT_BUS_WIDTH back to default
+    // This is only needed if we previously changed it for boot partition access
+    if (mActivePartition == EXT_CSD_PART_ACCESS_BOOT1 ||
+        mActivePartition == EXT_CSD_PART_ACCESS_BOOT2) {
+      Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+                 EXT_CSD_BOOT_BUS_WIDTH, 0x01);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((EFI_D_WARN, "DWMMC: BOOT_BUS_WIDTH restore failed: %r\n", Status));
+      }
+    }
+  }
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_PART_CONF, PartConf);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Select partition PART_CONF=0x%02x failed: %r\n",
+      PartConf, Status));
+    return Status;
+  }
+
+  mActivePartition = Partition;
+  DEBUG ((EFI_D_WARN, "DWMMC: Partition switched to 0x%x\n", Partition));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcErase (
+  EFI_LBA Lba,
+  UINTN   BlockCount,
+  BOOLEAN SecurePurge
+  )
+{
+  EFI_STATUS Status;
+  UINT32     Arg, CardState, StartCmd, EndCmd;
+  UINT32     EraseTimeout;
+  UINT32     Start, End;
+
+  if (BlockCount == 0)
+    return EFI_SUCCESS;
+
+  // Card must be in TRAN state (4) before issuing erase commands
+  Status = DwMmcGetCardStatus (1000, &CardState);
+  if (EFI_ERROR (Status) || CardState != 4) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Card not in TRAN state for erase (state=%d)\n", CardState));
+    return EFI_DEVICE_ERROR;
+  }
+
+  // Calculate start/end addresses
+  Start = (UINT32)Lba;
+  End   = (UINT32)(Lba + BlockCount - 1);
+
+  if (mHost.CardType == CARD_TYPE_SD || mHost.CardType == CARD_TYPE_SDHC) {
+    // SD cards use CMD32/33 for erase
+    StartCmd = CMD32_ERASE_WR_BLK_START;
+    EndCmd   = CMD33_ERASE_WR_BLK_END;
+    if (!mHost.IsSdhc) {
+      Start *= MMC_MAX_BLOCK_LEN;
+      End   *= MMC_MAX_BLOCK_LEN;
+    }
+  } else {
+    // eMMC cards use CMD35/36 for erase (group start/end)
+    StartCmd = CMD35_ERASE_GROUP_START;
+    EndCmd   = CMD36_ERASE_GROUP_END;
+  }
+
+  // Set erase start address
+  Arg = Start;
+  Status = DwMmcSendCommand (StartCmd, Arg,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Erase start CMD%d failed: %r\n", StartCmd, Status));
+    return Status;
+  }
+
+  // Set erase end address
+  Arg = End;
+  Status = DwMmcSendCommand (EndCmd, Arg,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Erase end CMD%d failed: %r\n", EndCmd, Status));
+    return Status;
+  }
+
+  // Issue CMD38 with erase type argument
+  // For eMMC, if SecurePurge, use secure erase + sanitize
+  if (SecurePurge && (mHost.CardType == CARD_TYPE_MMC)) {
+    // First attempt secure erase
+    Arg = MMC_ERASE_SECURE;
+  } else {
+    Arg = SecurePurge ? MMC_ERASE_SECURE : MMC_ERASE_NORMAL;
+  }
+
+  Status = DwMmcSendCommand (CMD38_ERASE, Arg,
+             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE | MMC_RSP_BUSY, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: CMD38 erase failed: %r\n", Status));
+    // If normal erase fails and this is eMMC, try trim as fallback
+    if (mHost.CardType == CARD_TYPE_MMC && !SecurePurge) {
+      DEBUG ((EFI_D_WARN, "DWMMC: Trying trim as fallback for %lu blocks at LBA %lu\n",
+        BlockCount, Lba));
+      return DwMmcTrim (Lba, BlockCount, FALSE);
+    }
+    return Status;
+  }
+
+  // Wait for erase completion (can take up to several seconds)
+  for (EraseTimeout = 0; EraseTimeout < MMC_ERASE_TIMEOUT_SEC * 100; EraseTimeout++) {
+    MicroSecondDelay (10000);
+    Status = DwMmcGetCardStatus (0, &CardState);
+    if (!EFI_ERROR (Status) && (CardState == 4))  // TRAN state
+      break;
+  }
+
+  if (EraseTimeout >= MMC_ERASE_TIMEOUT_SEC * 100) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Erase timeout after %d seconds\n", MMC_ERASE_TIMEOUT_SEC));
+    // Try trim as fallback on timeout
+    if (mHost.CardType == CARD_TYPE_MMC && !SecurePurge) {
+      DEBUG ((EFI_D_WARN, "DWMMC: Trying discard as fallback after erase timeout\n"));
+      return DwMmcDiscard (Lba, BlockCount);
+    }
+    return EFI_TIMEOUT;
+  }
+
+  // For secure erase on eMMC, follow up with sanitize
+  if (SecurePurge && (mHost.CardType == CARD_TYPE_MMC)) {
+    Status = DwMmcSanitize ();
+    if (EFI_ERROR (Status)) {
+      DEBUG ((EFI_D_WARN, "DWMMC: Sanitize after secure erase failed: %r\n", Status));
+      // Non-fatal: erase itself succeeded
+    }
+  }
+
+  DEBUG ((EFI_D_INFO, "DWMMC: %a %lu blocks from LBA %lu\n",
+    SecurePurge ? "Secure purged" : "Erased", BlockCount, Lba));
+  return EFI_SUCCESS;
+}
+
+STATIC EFI_STATUS EFIAPI
+EraseBlocks (
+  IN EFI_BLOCK_IO_PROTOCOL  *This,
+  IN UINT32                  MediaId,
+  IN EFI_LBA                 LBA,
+  IN OUT EFI_ERASE_BLOCK_TOKEN *Token,
+  IN UINTN                   Size
+  )
+{
+  DW_BLKDEV *Dev = (DW_BLKDEV *)This;
+  EFI_STATUS Status;
+  UINTN      BlockCount;
+
+  if (MediaId != Dev->Media.MediaId)
+    return EFI_MEDIA_CHANGED;
+
+  if (Size == 0)
+    return EFI_SUCCESS;
+
+  if (Size % Dev->Media.BlockSize != 0)
+    return EFI_INVALID_PARAMETER;
+
+  BlockCount = Size / Dev->Media.BlockSize;
+
+  // Attempt normal erase first; if it fails, try secure purge fallback for eMMC
+  Status = DwMmcErase (LBA, BlockCount, FALSE);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_WARN, "DWMMC: EraseBlocks normal failed (%r), trying secure purge\n", Status));
+    Status = DwMmcErase (LBA, BlockCount, TRUE);
+  }
+
+  // Signal completion if async token was provided
+  if (Token != NULL) {
+    Token->TransactionStatus = Status;
+    if (Token->Event != NULL)
+      gBS->SignalEvent (Token->Event);
+  }
+
+  return Status;
+}
 
 STATIC EFI_STATUS EFIAPI
 BlkReset (EFI_BLOCK_IO_PROTOCOL *This, BOOLEAN ExtendedVerification)
@@ -1758,27 +2469,45 @@ BlkRead (
 {
   DW_BLKDEV *Dev = (DW_BLKDEV *)This;
   UINT32     N, Arg;
+  EFI_STATUS Status;
+  UINT8      TargetPartition, SavedPartition;
 
   if (MediaId != Dev->Media.MediaId)
     return EFI_MEDIA_CHANGED;
   if (!BufferSize || !Buffer)
     return EFI_SUCCESS;
 
-  N   = (UINT32)(BufferSize / 512);
-  Arg = mHost.IsSdhc ? (UINT32)Lba : (UINT32)(Lba * 512);
-
-  if (N == 1)
-    return DwMmcSendCommandData (CMD17_READ_SINGLE, Arg,
-             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
-             NULL, FALSE, 512, 1, Buffer);
-
-  if (mHost.CardType == CARD_TYPE_MMC) {
-    DwMmcSendCommand (CMD23_SET_BLKCNT, N,
-      MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  // For eMMC: switch to the correct partition before I/O
+  SavedPartition = mActivePartition;
+  TargetPartition = Dev->Partition;
+  if (mHost.CardType == CARD_TYPE_MMC && TargetPartition != SavedPartition) {
+    Status = DwMmcSelectPartition (TargetPartition);
+    if (EFI_ERROR (Status))
+      return Status;
   }
-  return DwMmcSendCommandData (CMD18_READ_MULTI, Arg,
-           MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
-           NULL, FALSE, 512, N, Buffer);
+
+  N   = (UINT32)(BufferSize / MMC_MAX_BLOCK_LEN);
+  Arg = mHost.IsSdhc ? (UINT32)Lba : (UINT32)(Lba * MMC_MAX_BLOCK_LEN);
+
+  if (N == 1) {
+    Status = DwMmcSendCommandData (CMD17_READ_SINGLE, Arg,
+               MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
+               NULL, FALSE, MMC_MAX_BLOCK_LEN, 1, Buffer);
+  } else {
+    if (mHost.CardType == CARD_TYPE_MMC) {
+      DwMmcSendCommand (CMD23_SET_BLKCNT, N,
+        MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+    }
+    Status = DwMmcSendCommandData (CMD18_READ_MULTI, Arg,
+               MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
+               NULL, FALSE, MMC_MAX_BLOCK_LEN, N, Buffer);
+  }
+
+  // Switch back to user partition if we changed it
+  if (mHost.CardType == CARD_TYPE_MMC && TargetPartition != SavedPartition) {
+    DwMmcSelectPartition (SavedPartition);
+  }
+  return Status;
 }
 
 STATIC EFI_STATUS EFIAPI
@@ -1792,32 +2521,188 @@ BlkWrite (
 {
   DW_BLKDEV *Dev = (DW_BLKDEV *)This;
   UINT32     N, Arg;
+  EFI_STATUS Status;
+  UINT8      TargetPartition, SavedPartition;
 
   if (MediaId != Dev->Media.MediaId)
     return EFI_MEDIA_CHANGED;
   if (!BufferSize || !Buffer)
     return EFI_SUCCESS;
 
-  N   = (UINT32)(BufferSize / 512);
-  Arg = mHost.IsSdhc ? (UINT32)Lba : (UINT32)(Lba * 512);
-
-  if (N == 1)
-    return DwMmcSendCommandData (CMD24_WRITE_SINGLE, Arg,
-             MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
-             NULL, TRUE, 512, 1, Buffer);
-
-  if (mHost.CardType == CARD_TYPE_MMC) {
-    DwMmcSendCommand (CMD23_SET_BLKCNT, N,
-      MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+  // For eMMC: switch to the correct partition before I/O
+  SavedPartition = mActivePartition;
+  TargetPartition = Dev->Partition;
+  if (mHost.CardType == CARD_TYPE_MMC && TargetPartition != SavedPartition) {
+    Status = DwMmcSelectPartition (TargetPartition);
+    if (EFI_ERROR (Status))
+      return Status;
   }
-  return DwMmcSendCommandData (CMD25_WRITE_MULTI, Arg,
-           MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
-           NULL, TRUE, 512, N, Buffer);
+
+  N   = (UINT32)(BufferSize / MMC_MAX_BLOCK_LEN);
+  Arg = mHost.IsSdhc ? (UINT32)Lba : (UINT32)(Lba * MMC_MAX_BLOCK_LEN);
+
+  if (N == 1) {
+    Status = DwMmcSendCommandData (CMD24_WRITE_SINGLE, Arg,
+               MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
+               NULL, TRUE, MMC_MAX_BLOCK_LEN, 1, Buffer);
+  } else {
+    if (mHost.CardType == CARD_TYPE_MMC) {
+      DwMmcSendCommand (CMD23_SET_BLKCNT, N,
+        MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
+    }
+    Status = DwMmcSendCommandData (CMD25_WRITE_MULTI, Arg,
+               MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE,
+               NULL, TRUE, MMC_MAX_BLOCK_LEN, N, Buffer);
+  }
+
+  // Switch back to user partition if we changed it
+  if (mHost.CardType == CARD_TYPE_MMC && TargetPartition != SavedPartition) {
+    DwMmcSelectPartition (SavedPartition);
+  }
+  return Status;
 }
 
 STATIC EFI_STATUS EFIAPI
 BlkFlush (IN EFI_BLOCK_IO_PROTOCOL *This)
 {
+  return EFI_SUCCESS;
+}
+
+STATIC
+VOID
+EFIAPI
+DwMmcExitBootServicesCallback (
+  IN EFI_EVENT  Event,
+  IN VOID      *Context
+  )
+{
+  // Send power-off notification to eMMC before OS takes over
+  if (mHost.CardType == CARD_TYPE_MMC && mHost.InitDone) {
+    DEBUG ((EFI_D_WARN, "DWMMC: ExitBootServices — sending eMMC power-off notification\n"));
+    DwMmcPowerOffNotification (EXT_CSD_POWER_OFF_LONG);
+  }
+}
+
+STATIC
+EFI_EVENT  mExitBootServicesEvent;
+
+STATIC
+EFI_STATUS
+DwMmcRegisterBootPartitions (VOID)
+{
+  // Only expose boot partitions for eMMC
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_SUCCESS;
+
+  // Disable permanent power-on write protection for boot partitions.
+  // Per JEDEC JESD84-B51, writing EXT_CSD_BOOT_WP requires the
+  // WP_CFG_KEY bit (0x80) to be set — without it the write is ignored.
+  DwMmcSetBootWp (
+    EXT_CSD_BOOT_WP_BOOT1_PWR_WP_DIS |
+    EXT_CSD_BOOT_WP_BOOT2_PWR_WP_DIS |
+    EXT_CSD_BOOT_WP_BOOT1_WP_CFG_KEY);
+
+  // Boot1 partition
+  if (mBoot1Blocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mBoot1Blocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_BOOT1;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[1] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: Boot1 partition: %u blocks\n", mBoot1Blocks));
+  }
+
+  // Boot2 partition
+  if (mBoot2Blocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mBoot2Blocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_BOOT2;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[2] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: Boot2 partition: %u blocks\n", mBoot2Blocks));
+  }
+
+  // RPMB partition
+  if (mRpmbBlocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mRpmbBlocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_RPMB;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[3] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: RPMB partition: %u blocks\n", mRpmbBlocks));
+  }
+
+  // Install BlockIo protocol for each partition and register ExitBootServices callback
+  if (mHost.CardType == CARD_TYPE_MMC) {
+    UINT32 PartIdx;
+
+    for (PartIdx = 1; PartIdx < MMC_NUM_PARTITIONS; PartIdx++) {
+      DW_BLKDEV *PartDev = (DW_BLKDEV *)mPartitionDevs[PartIdx];
+      if (PartDev) {
+        EXYNOS_SD_DEVICE_PATH *PartDp = DwMmcBuildDevicePath ((UINT8)(mChannel | (PartIdx << 4)));
+        if (PartDp) {
+          gBS->InstallMultipleProtocolInterfaces (
+                 NULL,
+                 &gEfiBlockIoProtocolGuid, &PartDev->BlockIo,
+                 &gEfiDevicePathProtocolGuid, PartDp,
+                 NULL);
+          DEBUG ((EFI_D_INFO, "DWMMC: Boot partition %d BlockIo installed (%u blocks)\n",
+            PartIdx, PartDev->Media.LastBlock + 1));
+        }
+      }
+    }
+
+    // Register ExitBootServices callback for eMMC power-off notification
+    {
+      EFI_STATUS EventStatus;
+      EventStatus = gBS->CreateEvent (
+                        EVT_SIGNAL_EXIT_BOOT_SERVICES,
+                        TPL_CALLBACK,
+                        DwMmcExitBootServicesCallback,
+                        NULL,
+                        &mExitBootServicesEvent);
+      if (EFI_ERROR (EventStatus)) {
+        DEBUG ((EFI_D_WARN, "DWMMC: Failed to create ExitBootServices event: %r\n", EventStatus));
+      }
+    }
+  }
+
   return EFI_SUCCESS;
 }
 
@@ -1912,24 +2797,21 @@ InitDwMmcDriver (
   mDev->BlockIo.WriteBlocks   = BlkWrite;
   mDev->BlockIo.FlushBlocks   = BlkFlush;
 
+  mDev->EraseBlock.Revision               = EFI_ERASE_BLOCK_PROTOCOL_REVISION;
+  mDev->EraseBlock.EraseLengthGranularity = 1;
+  mDev->EraseBlock.EraseBlocks            = EraseBlocks;
+
   {
-    EXYNOS_SD_DEVICE_PATH *Dp = AllocateZeroPool (sizeof (EXYNOS_SD_DEVICE_PATH));
+    EXYNOS_SD_DEVICE_PATH *Dp = DwMmcBuildDevicePath ((UINT8)mChannel);
     if (!Dp) {
       FreePool (mDev);
       return EFI_OUT_OF_RESOURCES;
     }
 
-    Dp->VendorDp.Header.Type    = HARDWARE_DEVICE_PATH;
-    Dp->VendorDp.Header.SubType = HW_VENDOR_DP;
-    SetDevicePathNodeLength (&Dp->VendorDp.Header,
-      sizeof (VENDOR_DEVICE_PATH) + sizeof (UINT8));
-    CopyMem (&Dp->VendorDp.Guid, &gExynosSdCardGuid, sizeof (EFI_GUID));
-    Dp->Slot = (UINT8)mChannel;
-    SetDevicePathEndNode (&Dp->End);
-
     Status = gBS->InstallMultipleProtocolInterfaces (
                     &Handle,
                     &gEfiBlockIoProtocolGuid, &mDev->BlockIo,
+                    &gEfiEraseBlockProtocolGuid, &mDev->EraseBlock,
                     &gEfiDevicePathProtocolGuid, Dp,
                     NULL);
     if (EFI_ERROR (Status)) {
@@ -1941,5 +2823,11 @@ InitDwMmcDriver (
 
   DEBUG ((EFI_D_INFO, "DWMMC: %a DiskIO Protocol Installed (%u blocks)\n",
     mChannel == MMC_CHANNEL_EMMC ? "eMMC" : "SD card", mHost.NumBlocks));
+
+  // Register boot/RPMB partition BlockIo instances and ExitBootServices callback
+  if (mChannel == MMC_CHANNEL_EMMC) {
+    DwMmcRegisterBootPartitions ();
+  }
+
   return EFI_SUCCESS;
 }

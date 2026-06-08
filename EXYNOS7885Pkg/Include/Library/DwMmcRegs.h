@@ -54,6 +54,20 @@
 #define DWMCI_HS400_DLINE_CTRL      0x188
 
 #define DWMCI_FIFODAT_240A      0x200
+#define DWMCI_SECTOR_NUM_INC    0x120
+#define DWMCI_CLOCKCON          0x0A4
+
+#define DWMCI_FMPSBEGIN0        0x1100
+#define DWMCI_FMPSEND0          0x1104
+#define DWMCI_FMPSCTRL0         0x1108
+#define DWMCI_FMPSECURITY       0x110C
+#define DWMCI_MPSCTRL0          0x1110
+
+#define MPSCTRL_SECURE_READ_BIT     (1 << 0)
+#define MPSCTRL_SECURE_WRITE_BIT    (1 << 1)
+#define MPSCTRL_NON_SECURE_READ_BIT (1 << 2)
+#define MPSCTRL_NON_SECURE_WRITE_BIT (1 << 3)
+#define MPSCTRL_VALID              (1 << 4)
 
 #define CTRL_RESET              (1<<0)
 #define FIFO_RESET              (1<<1)
@@ -224,7 +238,8 @@
   (((x) & ~EXYNOS_CLKSEL_CCLK_SAMPLE (7)) | EXYNOS_CLKSEL_CCLK_SAMPLE (y))
 
 #define DATA_STROBE_EN                  (1 << 0)
-#define HS400_DQS_RCLK_MODE             (1 << 5)
+#define DWMCI_RESP_RCLK_MODE            (1 << 5)
+#define HS400_DQS_RCLK_MODE             DWMCI_RESP_RCLK_MODE
 #define HS400_AXI_NON_BLOCKING_WRITE    (1 << 7)
 #define HS400_TXDT_CRC_TIMER_FASTLIMIT(x) (((x) & 0xFF) << 16)
 #define HS400_TXDT_CRC_TIMER_INITVAL(x)   (((x) & 0xFF) << 8)
@@ -267,7 +282,23 @@
 #define CMD23_SET_BLKCNT        23
 #define CMD24_WRITE_SINGLE      24
 #define CMD25_WRITE_MULTI       25
+#define CMD32_ERASE_WR_BLK_START 32
+#define CMD33_ERASE_WR_BLK_END  33
+#define CMD34_CIL_MULTI_BLOCK   34
+#define CMD35_ERASE_GROUP_START 35
+#define CMD36_ERASE_GROUP_END   36
+#define CMD37_READ_NATIVE_SECTOR 37
+#define CMD38_ERASE             38
+#define CMD39_FAST_IO           39
+#define CMD40_GO_IRQ_STATE      40
+#define CMD42_LOCK_UNLOCK       42
 #define CMD55_APP_CMD           55
+#define CMD56_GEN_CMD           56
+
+// Write protection commands
+#define CMD28_SET_WR_PROT       28
+#define CMD29_CLR_WR_PROT       29
+#define CMD30_SEND_WR_PROT      30
 
 #define ACMD6_SET_BUS_WIDTH     6
 #define ACMD41_SD_SEND_OP       41
@@ -328,11 +359,61 @@
 #define EXT_CSD_HC_ERASE_GRP_SIZE   224
 #define EXT_CSD_SEC_FEATURE         231
 #define EXT_CSD_RST_N_FUNCTION      162
-#define EXT_CSD_BOOT_WP             173
 #define EXT_CSD_BOOT_BUS_WIDTH      177
 #define EXT_CSD_PART_CONF           179
-#define EXT_CSD_POWER_OFF_NOTIFY    34
+#define EXT_CSD_CACHE_SIZE          249
+#define EXT_CSD_PARTITION_SUPPORT   160
+#define EXT_CSD_BOOT_PARTITION_ACCESS 180
+#define EXT_CSD_ERASE_TIMEOUT_MULT  223
+#define EXT_CSD_HS_ERASE_GRP_SIZE   224
+#define EXT_CSD_REL_WR_SEC_C        222
+#define EXT_CSD_STROBE_SUPPORT      184
+#define EXT_CSD_ENH_START_ADDR      136
+#define EXT_CSD_ENH_SIZE_MULT       140
+#define EXT_CSD_ENH_SIZE_MULT2      142
+#define EXT_CSD_HPI_FEATURES        163
+#define EXT_CSD_BKOPS_STATUS        246
+#define EXT_CSD_PRE_EOL_INFO        267
+#define EXT_CSD_DEVICE_LIFE_TIME_EST_A 268
+#define EXT_CSD_DEVICE_LIFE_TIME_EST_B 269
+#define EXT_CSD_GENERIC_CMD6_TIME   248
+#define EXT_CSD_MAX_ENH_SIZE_MULT   157
+#define EXT_CSD_NATIVE_SECTOR_SIZE  63
+
+// eMMC cache control (EXT_CSD offset 33)
+#define EXT_CSD_CACHE_CTRL          33
+#define EXT_CSD_CACHE_ENABLE        1
+#define EXT_CSD_CACHE_DISABLE       0
+
+// Power off notification (EXT_CSD offset 34)
+#define EXT_CSD_POWER_OFF_NOTIFICATION 34
+#define EXT_CSD_POWER_OFF_LONG      0x02
+#define EXT_CSD_POWER_ON            0x01
+
+// BKOPS (background operations) control (EXT_CSD offset 163)
+#define EXT_CSD_BKOPS_EN            163
+#define EXT_CSD_BKOPS_ENABLE        0x01
+#define EXT_CSD_BKOPS_START         164
+
+// Sanitize start (EXT_CSD offset 157) — JESD84-B51
+#define EXT_CSD_SANITIZE_START      154
+#define EXT_CSD_ERASE_GROUP_DEF     175
 #define EXT_CSD_HC_WP_GRP_SIZE      221
+#define EXT_CSD_BOOT_WP             173
+#define EXT_CSD_BOOT_WP_STATUS      174
+#define EXT_CSD_WR_REL_PARAM        166
+#define EXT_CSD_FORCE_WR_REL        174
+#define EXT_CSD_BKOPS_EN_AUTO       0x01
+
+// Boot write protection values (EXT_CSD_BOOT_WP)
+#define EXT_CSD_BOOT_WP_BOOT1_PWR_WP_DIS  (0x01 << 1)
+#define EXT_CSD_BOOT_WP_BOOT2_PWR_WP_DIS  (0x01 << 3)
+#define EXT_CSD_BOOT_WP_BOOT1_WP_SELECT   (0x01 << 0)
+#define EXT_CSD_BOOT_WP_BOOT2_WP_SELECT   (0x01 << 2)
+#define EXT_CSD_BOOT_WP_BOOT1_WP_EN       (0x01 << 4)
+#define EXT_CSD_BOOT_WP_BOOT2_WP_EN       (0x01 << 5)
+#define EXT_CSD_BOOT_WP_RPMB_WP_EN         (0x01 << 6)
+#define EXT_CSD_BOOT_WP_BOOT1_WP_CFG_KEY   (0x01 << 7)
 
 // EXT_CSD HS_TIMING values
 #define EXT_CSD_RST_N_ENABLE    1
@@ -349,6 +430,34 @@
 #define EXT_CSD_BUS_WIDTH_8BIT_SDR    2
 #define EXT_CSD_BUS_WIDTH_4BIT_DDR    5
 #define EXT_CSD_BUS_WIDTH_8BIT_DDR    6
+#define EXT_CSD_BUS_WIDTH_STROBE      0x80
+
+// EXT_CSD CMD_SET register (offset 191) bit values
+#define EXT_CSD_CMD_SET_NORMAL  0x01
+#define EXT_CSD_CMD_SET_SECURE  0x02
+#define EXT_CSD_CMD_SET_CPSECURE 0x04
+
+// EXT_CSD PARTITION_CONFIG (offset 179) bit definitions
+#define EXT_CSD_PART_CFG_BOOT_PART_MASK    0x07
+#define EXT_CSD_PART_CFG_BOOT_PART_NONE    0x00
+#define EXT_CSD_PART_CFG_BOOT_PART1        0x01
+#define EXT_CSD_PART_CFG_BOOT_PART2        0x02
+#define EXT_CSD_PART_CFG_BOOT_ACK          (1 << 6)
+
+// EXT_CSD PARTITION_ACCESS (offset 180) — runtime partition selection
+#define EXT_CSD_PART_ACCESS_USER           0x00
+#define EXT_CSD_PART_ACCESS_BOOT1          0x01
+#define EXT_CSD_PART_ACCESS_BOOT2          0x02
+#define EXT_CSD_PART_ACCESS_RPMB           0x03
+#define EXT_CSD_PART_ACCESS_GP1            0x04
+#define EXT_CSD_PART_ACCESS_GP2            0x05
+#define EXT_CSD_PART_ACCESS_GP3            0x06
+#define EXT_CSD_PART_ACCESS_GP4            0x07
+
+
+// HS400ES enhanced strobe DQS delay default
+#define HS400_ES_DLINE_CTRL_DEFAULT \
+  (HS400_FIFO_CLK_DELAY_CTRL(2) | ((0x60) & 0x3FF))
 
 // EXT_CSD card types
 #define MMC_HS_26MHZ           (1<<0)
@@ -357,16 +466,47 @@
 #define MMC_HS_52MHZ_DDR_1_2V  (1<<3)
 #define MMC_HS_200MHZ_SDR      (1<<4)
 #define MMC_HS_400MHZ_DDR      (1<<5)
+#define MMC_HS_400MHZ_ES       (1<<7)
+
+// CMD38 ERASE argument types (JEDEC per JESD84-B51)
+#define MMC_ERASE_NORMAL          0x00000000
+#define MMC_ERASE_SECURE          0x80000000
+#define MMC_ERASE_TRIM            0x00000001
+#define MMC_ERASE_SECURE_TRIM1    0x80000001
+#define MMC_ERASE_SECURE_TRIM2    0x80008000
+#define MMC_ERASE_DISCARD         0x00000003
+#define MMC_ERASE_SECURE_TRIM     0x80000001
+#define NORMAL_ERASE               0x00000000
+#define SECURE_ERASE               0x80000000
+#define MMC_SANITIZE_ARG           0x04000000  // CMD38 with BIT(26) for sanitize
+
+// EXT_CSD power off notification values
+#define EXT_CSD_POWER_OFF_LONG  0x02
+#define EXT_CSD_POWER_ON        0x01
 
 // SD card capabilities
 #define SD_HS_SDR25            (1<<1)
 #define SD_UHS_SDR50           (1<<2)
 #define SD_UHS_SDR104          (1<<3)
 
-// Tuning block size (64 bytes for CMD21)
-#define TUNING_BLOCK_SIZE       64
+// SD switch function group offsets
+#define MMC_SD_SWITCH_FUNCTION_GROUP1   272
 
-#define MMC_SWITCH_MODE_WRITE_BYTE 0x03
+// Tuning block size (64 bytes for SD CMD19, 128 for eMMC CMD21)
+#define TUNING_BLOCK_SIZE       64
+#define TUNING_BLOCK_SIZE_EMMC  128
+
+// Maximum erase timeout (seconds) — JEDEC spec allows up to 240s for trim
+#define MMC_ERASE_TIMEOUT_SEC   240
+
+// Partition count: User + Boot1 + Boot2 + RPMB + 4×GP
+#define MMC_NUM_PARTITIONS      8
+
+#define MMC_SWITCH_MODE_CMD_SET     0x00
+#define MMC_SWITCH_MODE_SET_BITS    0x01
+#define MMC_SWITCH_MODE_CLEAR_BITS  0x02
+#define MMC_SWITCH_MODE_WRITE_BYTE  0x03
+#define MMC_CMD_SET_NORMAL          0x00
 #define SD_SWITCH_MODE_CHECK        0
 #define SD_SWITCH_MODE_SWITCH       1
 
@@ -376,6 +516,14 @@
 #define CARD_TYPE_UNKNOWN       0xFF
 
 #define MMC_MAX_BLOCK_LEN       512
+
+// CLK speeds for SD modes (lk3rd)
+#define SD_CLK_25MHZ    25000000
+#define SD_CLK_50MHZ    50000000
+#define SD_CLK_100MHZ   100000000
+#define SD_CLK_208MHZ   208000000
+#define MMC_CLK_26MHZ   26000000
+#define MMC_CLK_52MHZ   52000000
 
 typedef struct {
   UINT32 Des0;
@@ -392,6 +540,15 @@ typedef struct {
   UINT32 Des11;
   UINT32 Des12[4];
 } DWMMC_IDMAC_DESC;
+
+// 64-bit address IDMAC descriptor
+#define DWMCI_IDMAC_DES0_OWN       (1 << 31)
+#define DWMCI_IDMAC_DES0_DIC       (1 << 1)
+#define DWMCI_IDMAC_DES0_LD        (1 << 2)
+#define DWMCI_IDMAC_DES0_FS        (1 << 3)
+#define DWMCI_IDMAC_DES0_CH        (1 << 4)
+#define DWMCI_IDMAC_DES0_ER        (1 << 5)
+#define DWMCI_IDMAC_DES0_BS(n)     (((n) & 0x1FFFFF) << 11)
 
 #define DWMCI_IDMAC_OWN         (1<<31)
 #define DWMCI_IDMAC_ER          (1<<5)
@@ -415,6 +572,11 @@ typedef struct {
   UINT32      Hs400Clksel;
   UINT32      Ciudiv;
   UINT32      FifoDepth;
+
+  //
+  // eMMC cache enabled
+  //
+  BOOLEAN     CacheEnabled;
 
   //
   // Clock state

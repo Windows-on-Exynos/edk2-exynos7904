@@ -1,0 +1,24 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = ExynosClockLib
+  FILE_GUID                      = 02D25302-804B-4EC2-8B9A-820E08D37391
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = ExynosClockLib|DXE_DRIVER
+
+[Sources]
+  ExynosClockLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  IoLib
+  TimerLib
+  UefiBootServicesTableLib
+
+[Protocols]
+  gEfiExynosGpioProtocolGuid
