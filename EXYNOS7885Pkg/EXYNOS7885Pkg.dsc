@@ -149,7 +149,7 @@
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiExposedTableVersions|0x20
 
-  [PcdsDynamicDefault.common]
+[PcdsDynamicDefault.common]
   gEfiMdeModulePkgTokenSpaceGuid.PcdVideoHorizontalResolution|0 # /8 = column
   gEfiMdeModulePkgTokenSpaceGuid.PcdVideoVerticalResolution|0 #/19 = row
   gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoHorizontalResolution|0
@@ -158,6 +158,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdSetupConOutRow|0
   gEfiMdeModulePkgTokenSpaceGuid.PcdConOutColumn|0
   gEfiMdeModulePkgTokenSpaceGuid.PcdConOutRow|0
+
 ################################################################################
 #
 # Components Section - list of all EDK II Modules needed by this Platform

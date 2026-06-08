@@ -52,7 +52,7 @@
   "Serial Not Set\0"                 /* Serial  */
 
 #define TYPE4_STRINGS                                               \
-  "Exynos9609\0"                     /* socket type */              \
+  "Exynos 9609\0"                     /* socket type */              \
   "Samsung Electronics LTD\0"        /* manufactuer */              \
   "Cortex-A53\0"                     /* processor 1 description */  \
   "Cortex-A53\0"                     /* processor 2 description */  \
@@ -311,7 +311,7 @@ STATIC CONST ARM_TYPE4 mArmDefaultType4_a72 = {
   TYPE4_STRINGS
 };
 
-STATIC CONST ARM_TYPE4 mArmDefaultType4_a57 = {
+STATIC CONST ARM_TYPE4 mArmDefaultType4_a73 = {
   {
     { // SMBIOS_STRUCTURE Hdr
       EFI_SMBIOS_TYPE_PROCESSOR_INFORMATION, // UINT8 Type
@@ -326,8 +326,8 @@ STATIC CONST ARM_TYPE4 mArmDefaultType4_a57 = {
     3, //version
     {0,0,0,0,0,1}, //voltage
     0, //external clock
-    1200, //max speed
-    1200, //current speed
+    2200, //max speed
+    2200, //current speed
     0x41, //status
     ProcessorUpgradeOther,
     SMBIOS_HANDLE_A57_L1I, //l1 cache handle
@@ -360,8 +360,8 @@ STATIC CONST ARM_TYPE4 mArmDefaultType4_a53 = {
     4, //version
     {0,0,0,0,0,1}, //voltage
     0, //external clock
-    650, //max speed
-    650, //current speed
+    1600, //max speed
+    1600, //current speed
     0x41, //status
     ProcessorUpgradeOther,
     SMBIOS_HANDLE_A53_L1I, //l1 cache handle
@@ -380,7 +380,7 @@ STATIC CONST ARM_TYPE4 mArmDefaultType4_a53 = {
 };
 
 // Cache
-STATIC CONST ARM_TYPE7 mArmDefaultType7_a57_l1i = {
+STATIC CONST ARM_TYPE7 mArmDefaultType7_a73_l1i = {
   {
     { // SMBIOS_STRUCTURE Hdr
       EFI_SMBIOS_TYPE_CACHE_INFORMATION, // UINT8 Type
@@ -422,7 +422,7 @@ STATIC CONST ARM_TYPE7 mArmDefaultType7_a53_l1i = {
   TYPE7_STRINGS
 };
 
-STATIC CONST ARM_TYPE7 mArmDefaultType7_a57_l1d = {
+STATIC CONST ARM_TYPE7 mArmDefaultType7_a73_l1d = {
   {
     { // SMBIOS_STRUCTURE Hdr
       EFI_SMBIOS_TYPE_CACHE_INFORMATION, // UINT8 Type
@@ -464,7 +464,7 @@ STATIC CONST ARM_TYPE7 mArmDefaultType7_a53_l1d = {
   TYPE7_STRINGS
 };
 
-STATIC CONST ARM_TYPE7 mArmDefaultType7_a57_l2 = {
+STATIC CONST ARM_TYPE7 mArmDefaultType7_a73_l2 = {
   {
     { // SMBIOS_STRUCTURE Hdr
       EFI_SMBIOS_TYPE_CACHE_INFORMATION, // UINT8 Type
@@ -699,10 +699,10 @@ STATIC CONST VOID *DefaultCommonTables[]=
 
 STATIC CONST VOID *DefaultTablesR0R1[]=
 {
-  &mArmDefaultType7_a57_l1i,
-  &mArmDefaultType7_a57_l1d,
-  &mArmDefaultType7_a57_l2,
-  &mArmDefaultType4_a57,
+  &mArmDefaultType7_a73_l1i,
+  &mArmDefaultType7_a73_l1d,
+  &mArmDefaultType7_a73_l2,
+  &mArmDefaultType4_a73,
   NULL
 };
 
