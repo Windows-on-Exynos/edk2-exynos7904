@@ -738,9 +738,6 @@ DwMmcSwitchCmd (UINT8 Set, UINT8 Index, UINT8 Value)
   EFI_STATUS Status;
   UINT32     Arg, CardState;
 
-  // JEDEC eMMC CMD6 argument: bits[25:24]=Access Mode, bits[7:0]=Cmd Set
-  // Set = Access Mode (0x03 = MMC_SWITCH_MODE_WRITE_BYTE)
-  // MMC_CMD_SET_NORMAL (0x00) = Normal Cmd Set
   Arg = (Set << 24) | (Index << 16) | (Value << 8) | MMC_CMD_SET_NORMAL;
 
   Status = DwMmcSendCommand (CMD6_SWITCH_FUNC, Arg,
@@ -956,10 +953,9 @@ DwMmcPowerOffNotification (BOOLEAN PowerOffLong)
   if (mHost.CardType != CARD_TYPE_MMC)
     return EFI_UNSUPPORTED;
 
-  // Notify the device that power is about to be removed
   Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
              EXT_CSD_POWER_OFF_NOTIFICATION,
-             PowerOffLong ? EXT_CSD_POWER_OFF_LONG : EXT_CSD_POWER_ON);
+             PowerOffLong ? EXT_CSD_POWER_OFF_LONG : EXT_CSD_POWER_OFF_SHORT);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "DWMMC: Power-off notification failed: %r\n", Status));
     return Status;
@@ -996,12 +992,88 @@ DwMmcSetBkops (BOOLEAN Enable)
 
 STATIC
 EFI_STATUS
+DwMmcSetHpi (VOID)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  // Check if HPI features are supported (EXT_CSD[163] bit 0)
+  if (!(mExtCsdBuf[EXT_CSD_HPI_FEATURES] & EXT_CSD_HPI_FEATURES_EN)) {
+    DEBUG ((EFI_D_WARN, "DWMMC: eMMC does not support HPI\n"));
+    return EFI_SUCCESS;
+  }
+
+  // Enable HPI management (mirrors kernel: mmc_init_card -> EXT_CSD_HPI_MGMT = 1)
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_HPI_MGMT, EXT_CSD_HPI_MGMT_EN);
+  if (!EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_WARN, "DWMMC: HPI enabled\n"));
+  } else {
+    DEBUG ((EFI_D_WARN, "DWMMC: HPI enable failed: %r\n", Status));
+  }
+
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcPowerOnNotification (VOID)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_POWER_OFF_NOTIFICATION, EXT_CSD_POWER_ON);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Power-on notification failed: %r\n", Status));
+    return Status;
+  }
+
+  DEBUG ((EFI_D_WARN, "DWMMC: eMMC power-on notification sent\n"));
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
+DwMmcFlushCache (VOID)
+{
+  EFI_STATUS Status;
+
+  if (mHost.CardType != CARD_TYPE_MMC)
+    return EFI_UNSUPPORTED;
+
+  if (!mHost.CacheEnabled)
+    return EFI_SUCCESS;
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_CACHE_FLUSH, 0x01);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_WARN, "DWMMC: Cache flush failed: %r\n", Status));
+    return Status;
+  }
+
+  return EFI_SUCCESS;
+}
+
+STATIC
+EFI_STATUS
 DwMmcSetBootWp (UINT8 WpConfig)
 {
   EFI_STATUS Status;
 
   if (mHost.CardType != CARD_TYPE_MMC)
     return EFI_UNSUPPORTED;
+
+  Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+             EXT_CSD_BKOPS_START, EXT_CSD_WP_CFG_KEY);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "DWMMC: Boot WP key write failed: %r\n", Status));
+    return Status;
+  }
 
   Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
              EXT_CSD_BOOT_WP, WpConfig);
@@ -1347,6 +1419,20 @@ STATIC
 EFI_STATUS
 DwMmcHostInit (VOID)
 {
+  if (mHost.Secure) {
+    WR (DWMCI_FMPSBEGIN0, 0);
+    WR (DWMCI_FMPSEND0, 0xFFFFFFFF);
+    WR (DWMCI_FMPSCTRL0,
+      MPSCTRL_SECURE_READ_BIT | MPSCTRL_SECURE_WRITE_BIT |
+      MPSCTRL_NON_SECURE_READ_BIT | MPSCTRL_NON_SECURE_WRITE_BIT |
+      MPSCTRL_VALID);
+    if (mHost.MpsSecurity) {
+      WR (DWMCI_FMPSECURITY, mHost.MpsSecurity);
+    }
+    DEBUG ((EFI_D_INFO, "DWMMC: SMU configured (mps_security=0x%08x)\n",
+      mHost.MpsSecurity));
+  }
+
   mHost.Version = RD (DWMCI_VERID) & 0xFFFF;
 
   WR (DWMCI_PWREN, POWER_ENABLE);
@@ -1652,23 +1738,81 @@ DwMmcDecodeMmcInfo (VOID)
         mHost.BootSize = mExtCsdBuf[EXT_CSD_BOOT_MULT] * 128 / 1024;
         mHost.RpmbSize = mExtCsdBuf[EXT_CSD_RPMB_MULT] * 128 / 1024;
 
-        // Store boot partition sizes in sectors for BlockIo exposure
-        mBoot1Blocks = mExtCsdBuf[EXT_CSD_BOOT_MULT] * 128 / 512;
-        mBoot2Blocks = mExtCsdBuf[EXT_CSD_BOOT_MULT] * 128 / 512;
-        mRpmbBlocks  = mExtCsdBuf[EXT_CSD_RPMB_MULT] * 128 / 512;
+mBoot1Blocks = (UINT32)(mExtCsdBuf[EXT_CSD_BOOT_MULT] * 256U);
+        mBoot2Blocks = (UINT32)(mExtCsdBuf[EXT_CSD_BOOT_MULT] * 256U);
+        mRpmbBlocks  = (UINT32)(mExtCsdBuf[EXT_CSD_RPMB_MULT] * 256U);
 
-        DEBUG ((EFI_D_WARN,
-          "DWMMC: eMMC EXT_CSD: rev=%d.%d, partition_support=0x%02x, "
-          "cache_size=%d KB, pre_eol=0x%02x, life_a=0x%02x, life_b=0x%02x\n",
-          (ExtCsdRev >> 4) & 0xF, ExtCsdRev & 0xF,
-          mExtCsdBuf[EXT_CSD_PARTITION_SUPPORT],
-          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 0]) |
-          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 1] << 8) |
-          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 2] << 16) |
-          ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 3] << 24),
-          mExtCsdBuf[EXT_CSD_PRE_EOL_INFO],
-          mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_A],
-          mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_B]));
+        {
+          UINT32 HcWpGrpSize = mExtCsdBuf[EXT_CSD_HC_WP_GRP_SIZE];
+          UINT32 HcEraseGrpSize = mExtCsdBuf[EXT_CSD_HC_ERASE_GRP_SIZE];
+          UINT32 GrpSize = (HcWpGrpSize > 0 && HcEraseGrpSize > 0)
+                           ? (HcWpGrpSize * HcEraseGrpSize)
+                           : 0;
+
+          if (GrpSize > 0) {
+            UINT64 GpMult;
+            GpMult  = (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_1 + 0];
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_1 + 1] << 8;
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_1 + 2] << 16;
+            mGp1Blocks = (UINT32)(GpMult * GrpSize * 1024);
+
+            GpMult  = (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_2 + 0];
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_2 + 1] << 8;
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_2 + 2] << 16;
+            mGp2Blocks = (UINT32)(GpMult * GrpSize * 1024);
+
+            GpMult  = (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_3 + 0];
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_3 + 1] << 8;
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_3 + 2] << 16;
+            mGp3Blocks = (UINT32)(GpMult * GrpSize * 1024);
+
+            GpMult  = (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_4 + 0];
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_4 + 1] << 8;
+            GpMult |= (UINT64)mExtCsdBuf[EXT_CSD_GP_SIZE_MULT_4 + 2] << 16;
+            mGp4Blocks = (UINT32)(GpMult * GrpSize * 1024);
+          }
+        }
+
+        {
+          UINT32 CacheSize, CacheFlushPol, FwVer, CmdqSupport, CmdqDepth;
+          UINT8  SecFeature;
+
+          CacheSize = ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 0]) |
+                      ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 1] << 8) |
+                      ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 2] << 16) |
+                      ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 3] << 24);
+          CacheFlushPol = mExtCsdBuf[EXT_CSD_CACHE_FLUSH_POLICY];
+          SecFeature    = mExtCsdBuf[EXT_CSD_SEC_FEATURE];
+          CmdqSupport   = (ExtCsdRev >= 8) ? mExtCsdBuf[EXT_CSD_CMDQ_SUPPORT] : 0;
+          CmdqDepth     = (ExtCsdRev >= 8) ? mExtCsdBuf[EXT_CSD_CMDQ_DEPTH] : 0;
+
+          FwVer = ((UINT32)mExtCsdBuf[EXT_CSD_FW_VERSION + 0]) |
+                  ((UINT32)mExtCsdBuf[EXT_CSD_FW_VERSION + 1] << 8) |
+                  ((UINT32)mExtCsdBuf[EXT_CSD_FW_VERSION + 2] << 16) |
+                  ((UINT32)mExtCsdBuf[EXT_CSD_FW_VERSION + 3] << 24);
+
+          DEBUG ((EFI_D_WARN,
+            "DWMMC: eMMC EXT_CSD: rev=%d.%d, fw=0x%08x, part_sup=0x%02x, "
+            "sec_feat=0x%02x, cache=%d KB (flush_pol=%d)\n",
+            (ExtCsdRev >> 4) & 0xF, ExtCsdRev & 0xF,
+            FwVer, mExtCsdBuf[EXT_CSD_PARTITION_SUPPORT],
+            SecFeature, CacheSize, CacheFlushPol));
+
+          DEBUG ((EFI_D_WARN,
+            "DWMMC: eMMC health: pre_eol=0x%02x, life_a=0x%02x, life_b=0x%02x, "
+            "cmdq_sup=0x%02x depth=%d\n",
+            mExtCsdBuf[EXT_CSD_PRE_EOL_INFO],
+            mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_A],
+            mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_B],
+            CmdqSupport, CmdqDepth));
+
+          // Life time estimation: 0x01=0-10%, 0x0A=90-100%, 0x0B=exceeded
+          if (mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_A] == 0x0B ||
+              mExtCsdBuf[EXT_CSD_DEVICE_LIFE_TIME_EST_B] == 0x0B) {
+            DEBUG ((EFI_D_WARN,
+              "DWMMC: WARNING: eMMC life time estimation exceeded max!\n"));
+          }
+        }
       }
     }
   }
@@ -2162,28 +2306,48 @@ DwMmcInitAndIdentify (VOID)
     DwMmcDecodeMmcInfo ();
     DwMmcEmmcAdjustSpeed ();
 
-    // Enable RST_n functionality if not already enabled
+    if (mExtCsdBuf[EXT_CSD_REV] >= 3) {
+      Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+        EXT_CSD_ERASE_GROUP_DEF, EXT_CSD_ERASE_GROUP_DEF_EN);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((EFI_D_WARN, "DWMMC: ERASE_GROUP_DEF enable failed: %r\n", Status));
+      }
+    }
+
     if (mExtCsdBuf[EXT_CSD_RST_N_FUNCTION] != EXT_CSD_RST_N_ENABLE) {
       DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
         EXT_CSD_RST_N_FUNCTION, EXT_CSD_RST_N_ENABLE);
     }
 
-    // Enable eMMC cache for better performance
-    if (mExtCsdBuf[EXT_CSD_CACHE_SIZE] > 0) {
-      DwMmcSetCacheCtrl (TRUE);
-    } else {
-      DEBUG ((EFI_D_WARN, "DWMMC: eMMC has no cache (cache_size=0)\n"));
+    if (mExtCsdBuf[EXT_CSD_BOOT_BUS_WIDTH] != 0x02) {
+      DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
+        EXT_CSD_BOOT_BUS_WIDTH, 0x02);
     }
 
-    // Enable background operations (BKOPS) for sustained performance
-    // Per kernel: enable if card supports HS200/HS400 (eMMC 4.5+)
-    // Avoid using EXT_CSD_BKOPS_STATUS BIT(0) as gate — that bit is
-    // "BKOPS_URGENT" (needs attention), not "BKOPS supported".
-    if ((mExtCsdBuf[EXT_CSD_HPI_FEATURES] & 0x01) ||
-        (mHost.CardCaps & (MMC_HS_200MHZ_SDR | MMC_HS_400MHZ_DDR))) {
+    DwMmcSetHpi ();
+
+    {
+      UINT32 CacheSize = ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 0]) |
+                         ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 1] << 8) |
+                         ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 2] << 16) |
+                         ((UINT32)mExtCsdBuf[EXT_CSD_CACHE_SIZE + 3] << 24);
+      if (CacheSize > 0) {
+        DwMmcSetCacheCtrl (TRUE);
+      } else {
+        DEBUG ((EFI_D_WARN, "DWMMC: eMMC has no cache (cache_size=%d KB)\n", CacheSize));
+      }
+    }
+
+    if ((mExtCsdBuf[EXT_CSD_REV] >= 5) &&
+        ((mExtCsdBuf[EXT_CSD_BKOPS_SUPPORT] & EXT_CSD_BKOPS_SUPPORT_BIT) ||
+         (mExtCsdBuf[EXT_CSD_HPI_FEATURES] & EXT_CSD_HPI_FEATURES_EN) ||
+         (mHost.CardCaps & (MMC_HS_200MHZ_SDR | MMC_HS_400MHZ_DDR)))) {
       DwMmcSetBkops (TRUE);
     } else {
       DEBUG ((EFI_D_WARN, "DWMMC: eMMC BKOPS not supported (pre-v4.41 device)\n"));
+    }
+	if (mExtCsdBuf[EXT_CSD_REV] >= 6) {
+      DwMmcPowerOnNotification ();
     }
   }
 
@@ -2247,8 +2411,6 @@ DwMmcSelectPartition (
   )
 {
   EFI_STATUS Status;
-  UINT8      PartConf;
-  BOOLEAN    IsBootPartition;
 
   if (mHost.CardType != CARD_TYPE_MMC)
     return EFI_UNSUPPORTED;
@@ -2256,45 +2418,16 @@ DwMmcSelectPartition (
   if (Partition == mActivePartition)
     return EFI_SUCCESS;
 
-  IsBootPartition = (Partition == EXT_CSD_PART_ACCESS_BOOT1 ||
-                     Partition == EXT_CSD_PART_ACCESS_BOOT2);
-
-  PartConf = Partition;
-
-  // When accessing boot partitions, also configure BOOT_BUS_WIDTH
-  if (IsBootPartition) {
-    // Configure boot bus width: x1 in boot, x8 in runtime (0x02)
-    // Bit[0]: Reset bus width to x1 during boot
-    // Bit[1]: Use x8 bus width in data transfer mode
-    Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-               EXT_CSD_BOOT_BUS_WIDTH, 0x02);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_WARN, "DWMMC: BOOT_BUS_WIDTH config failed: %r\n", Status));
-      // Non-fatal: continue anyway
-    }
-  } else {
-    // For user/RPMB/GP partitions, configure BOOT_BUS_WIDTH back to default
-    // This is only needed if we previously changed it for boot partition access
-    if (mActivePartition == EXT_CSD_PART_ACCESS_BOOT1 ||
-        mActivePartition == EXT_CSD_PART_ACCESS_BOOT2) {
-      Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-                 EXT_CSD_BOOT_BUS_WIDTH, 0x01);
-      if (EFI_ERROR (Status)) {
-        DEBUG ((EFI_D_WARN, "DWMMC: BOOT_BUS_WIDTH restore failed: %r\n", Status));
-      }
-    }
-  }
-
   Status = DwMmcSwitchCmd (MMC_SWITCH_MODE_WRITE_BYTE,
-             EXT_CSD_PART_CONF, PartConf);
+             EXT_CSD_PART_CONF, Partition);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "DWMMC: Select partition PART_CONF=0x%02x failed: %r\n",
-      PartConf, Status));
+      Partition, Status));
     return Status;
   }
 
   mActivePartition = Partition;
-  DEBUG ((EFI_D_WARN, "DWMMC: Partition switched to 0x%x\n", Partition));
+  DEBUG ((EFI_D_INFO, "DWMMC: Partition switched to 0x%x\n", Partition));
   return EFI_SUCCESS;
 }
 
@@ -2495,7 +2628,11 @@ BlkRead (
                NULL, FALSE, MMC_MAX_BLOCK_LEN, 1, Buffer);
   } else {
     if (mHost.CardType == CARD_TYPE_MMC) {
-      DwMmcSendCommand (CMD23_SET_BLKCNT, N,
+      UINT32 BlkCntArg = N;
+      // RPMB writes require reliable write (bit 31 in CMD23 set)
+      if (TargetPartition == EXT_CSD_PART_ACCESS_RPMB)
+        BlkCntArg |= MMC_RELIABLE_WRITE_BIT;
+      DwMmcSendCommand (CMD23_SET_BLKCNT, BlkCntArg,
         MMC_RSP_PRESENT | MMC_RSP_CRC | MMC_RSP_OPCODE, NULL);
     }
     Status = DwMmcSendCommandData (CMD18_READ_MULTI, Arg,
@@ -2565,6 +2702,14 @@ BlkWrite (
 STATIC EFI_STATUS EFIAPI
 BlkFlush (IN EFI_BLOCK_IO_PROTOCOL *This)
 {
+  EFI_STATUS Status;
+
+  // Flush eMMC cache to non-volatile storage if caching is enabled
+  Status = DwMmcFlushCache ();
+  if (EFI_ERROR (Status) && Status != EFI_UNSUPPORTED) {
+    DEBUG ((EFI_D_WARN, "DWMMC: BlkFlush cache flush failed: %r\n", Status));
+  }
+
   return EFI_SUCCESS;
 }
 
@@ -2594,13 +2739,9 @@ DwMmcRegisterBootPartitions (VOID)
   if (mHost.CardType != CARD_TYPE_MMC)
     return EFI_SUCCESS;
 
-  // Disable permanent power-on write protection for boot partitions.
-  // Per JEDEC JESD84-B51, writing EXT_CSD_BOOT_WP requires the
-  // WP_CFG_KEY bit (0x80) to be set — without it the write is ignored.
   DwMmcSetBootWp (
     EXT_CSD_BOOT_WP_BOOT1_PWR_WP_DIS |
-    EXT_CSD_BOOT_WP_BOOT2_PWR_WP_DIS |
-    EXT_CSD_BOOT_WP_BOOT1_WP_CFG_KEY);
+    EXT_CSD_BOOT_WP_BOOT2_PWR_WP_DIS);
 
   // Boot1 partition
   if (mBoot1Blocks > 0) {
@@ -2668,6 +2809,90 @@ DwMmcRegisterBootPartitions (VOID)
     DEBUG ((EFI_D_WARN, "DWMMC: RPMB partition: %u blocks\n", mRpmbBlocks));
   }
 
+  // GP1 partition
+  if (mGp1Blocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mGp1Blocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_GP1;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[4] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: GP1 partition: %u blocks\n", mGp1Blocks));
+  }
+
+  // GP2 partition
+  if (mGp2Blocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mGp2Blocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_GP2;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[5] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: GP2 partition: %u blocks\n", mGp2Blocks));
+  }
+
+  // GP3 partition
+  if (mGp3Blocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mGp3Blocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_GP3;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[6] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: GP3 partition: %u blocks\n", mGp3Blocks));
+  }
+
+  // GP4 partition
+  if (mGp4Blocks > 0) {
+    DW_BLKDEV *Dev = AllocateZeroPool (sizeof (DW_BLKDEV));
+    if (!Dev) return EFI_OUT_OF_RESOURCES;
+    Dev->Signature             = DW_SIG;
+    Dev->Media.MediaId         = 1;
+    Dev->Media.RemovableMedia  = FALSE;
+    Dev->Media.MediaPresent    = TRUE;
+    Dev->Media.BlockSize       = MMC_MAX_BLOCK_LEN;
+    Dev->Media.LastBlock       = mGp4Blocks - 1;
+    Dev->Partition             = EXT_CSD_PART_ACCESS_GP4;
+    Dev->BlockIo.Revision      = EFI_BLOCK_IO_PROTOCOL_REVISION2;
+    Dev->BlockIo.Media         = &Dev->Media;
+    Dev->BlockIo.Reset         = BlkReset;
+    Dev->BlockIo.ReadBlocks    = BlkRead;
+    Dev->BlockIo.WriteBlocks   = BlkWrite;
+    Dev->BlockIo.FlushBlocks   = BlkFlush;
+    mPartitionDevs[7] = Dev;
+    DEBUG ((EFI_D_WARN, "DWMMC: GP4 partition: %u blocks\n", mGp4Blocks));
+  }
+
   // Install BlockIo protocol for each partition and register ExitBootServices callback
   if (mHost.CardType == CARD_TYPE_MMC) {
     UINT32 PartIdx;
@@ -2732,6 +2957,8 @@ InitDwMmcDriver (
     mHost.PhaseDivide  = Plat.PhaseDivide;
     mHost.Ciudiv       = Plat.Ciudiv;
     mHost.FifoDepth    = Plat.FifoDepth;
+	mHost.Secure       = Plat.Secure;
+    mHost.MpsSecurity  = Plat.MpsSecurity;
 
     DEBUG ((EFI_D_WARN, "DWMMC: Trying SD @ 0x%lx Bus=%d MHz\n",
       mHost.IoBase, Plat.BusHz / 1000000));
@@ -2761,6 +2988,8 @@ InitDwMmcDriver (
     mHost.PhaseDivide  = Plat.PhaseDivide;
     mHost.Ciudiv       = Plat.Ciudiv;
     mHost.FifoDepth    = Plat.FifoDepth;
+	mHost.Secure       = Plat.Secure;
+    mHost.MpsSecurity  = Plat.MpsSecurity;
 
     DEBUG ((EFI_D_WARN, "DWMMC: Trying eMMC @ 0x%lx Bus=%d MHz\n",
       mHost.IoBase, Plat.BusHz / 1000000));

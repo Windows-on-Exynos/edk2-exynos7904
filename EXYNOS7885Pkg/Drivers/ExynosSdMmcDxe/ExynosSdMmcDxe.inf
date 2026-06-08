@@ -28,6 +28,7 @@
 [Protocols]
   gEfiBlockIoProtocolGuid
   gEfiEraseBlockProtocolGuid
+  gEfiDevicePathProtocolGuid
 
 [Depex]
   TRUE

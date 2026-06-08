@@ -20,6 +20,8 @@ typedef struct {
   UINT32  PhaseDivide;
   UINT32  Ciudiv;
   UINT32  FifoDepth;
+  BOOLEAN Secure;
+  UINT32  MpsSecurity;
 } MMC_PLATFORM_HOST;
 
 /**

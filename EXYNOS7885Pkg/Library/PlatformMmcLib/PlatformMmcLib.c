@@ -330,6 +330,8 @@ MmcPlatformInit (
     Host->PhaseDivide = MMC_CIU_DIV;
     Host->Ciudiv      = MMC_CIUDIV;
     Host->FifoDepth   = MMC_FIFO_DEPTH;
+	Host->Secure      = TRUE;
+    Host->MpsSecurity = 0;
 
   } else if (Channel == MMC_CHANNEL_SD) {
     Status = MmcGpioInitSd ();
@@ -339,7 +341,7 @@ MmcPlatformInit (
     }
     MmcClockInitSd ();
 
-    Host->IoBase      = DW_MMC2_BASE;
+    Host->IoBase       = DW_MMC2_BASE;
     Host->SdrClksel    = EXYNOS9610_SDR_CLKSEL;
     Host->DdrClksel    = EXYNOS9610_DDR_CLKSEL;
     Host->Sdr50Clksel  = EXYNOS9610_SDR50_CLKSEL;
@@ -350,6 +352,8 @@ MmcPlatformInit (
     Host->PhaseDivide  = MMC_CIU_DIV;
     Host->Ciudiv       = MMC_CIUDIV;
     Host->FifoDepth    = MMC_FIFO_DEPTH;
+	Host->Secure       = FALSE;
+    Host->MpsSecurity  = 0;
 
   } else {
     DEBUG ((EFI_D_ERROR, "MMC: Unknown channel: %d\n", Channel));

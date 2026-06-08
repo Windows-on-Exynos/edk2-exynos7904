@@ -27,6 +27,10 @@ STATIC UINT8             mActivePartition = EXT_CSD_PART_ACCESS_USER;
 STATIC UINT32            mBoot1Blocks;
 STATIC UINT32            mBoot2Blocks;
 STATIC UINT32            mRpmbBlocks;
+STATIC UINT32            mGp1Blocks;
+STATIC UINT32            mGp2Blocks;
+STATIC UINT32            mGp3Blocks;
+STATIC UINT32            mGp4Blocks;
 
 // Multiple BlockIo instances for partitions
 STATIC VOID             *mPartitionDevs[MMC_NUM_PARTITIONS];
@@ -160,6 +164,15 @@ STATIC EFI_STATUS
 DwMmcSetBootWp (
   UINT8 WpConfig
   );
+
+STATIC EFI_STATUS
+DwMmcSetHpi (VOID);
+
+STATIC EFI_STATUS
+DwMmcPowerOnNotification (VOID);
+
+STATIC EFI_STATUS
+DwMmcFlushCache (VOID);
 
 STATIC VOID
 DwMmcChangeClksel (

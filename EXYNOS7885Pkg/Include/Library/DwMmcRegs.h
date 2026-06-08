@@ -266,6 +266,7 @@
 #define CMD1_SEND_OP_COND       1
 #define CMD2_ALL_SEND_CID       2
 #define CMD3_SEND_REL_ADDR      3
+#define CMD5_SLEEP_AWAKE        5
 #define CMD6_SWITCH_FUNC        6
 #define CMD7_SELECT_CARD        7
 #define CMD8_SEND_EXT_CSD       8
@@ -370,9 +371,10 @@
 #define EXT_CSD_STROBE_SUPPORT      184
 #define EXT_CSD_ENH_START_ADDR      136
 #define EXT_CSD_ENH_SIZE_MULT       140
-#define EXT_CSD_ENH_SIZE_MULT2      142
 #define EXT_CSD_HPI_FEATURES        163
+#define EXT_CSD_HPI_FEATURES_EN     (1 << 0)
 #define EXT_CSD_BKOPS_STATUS        246
+#define EXT_CSD_BKOPS_SUPPORT       502
 #define EXT_CSD_PRE_EOL_INFO        267
 #define EXT_CSD_DEVICE_LIFE_TIME_EST_A 268
 #define EXT_CSD_DEVICE_LIFE_TIME_EST_B 269
@@ -380,30 +382,80 @@
 #define EXT_CSD_MAX_ENH_SIZE_MULT   157
 #define EXT_CSD_NATIVE_SECTOR_SIZE  63
 
-// eMMC cache control (EXT_CSD offset 33)
 #define EXT_CSD_CACHE_CTRL          33
 #define EXT_CSD_CACHE_ENABLE        1
 #define EXT_CSD_CACHE_DISABLE       0
+#define EXT_CSD_CACHE_FLUSH         32
+#define EXT_CSD_CACHE_FLUSH_POLICY  32
 
-// Power off notification (EXT_CSD offset 34)
 #define EXT_CSD_POWER_OFF_NOTIFICATION 34
-#define EXT_CSD_POWER_OFF_LONG      0x02
+#define EXT_CSD_POWER_OFF_SHORT     0x02
+#define EXT_CSD_POWER_OFF_LONG      0x03
 #define EXT_CSD_POWER_ON            0x01
 
-// BKOPS (background operations) control (EXT_CSD offset 163)
 #define EXT_CSD_BKOPS_EN            163
 #define EXT_CSD_BKOPS_ENABLE        0x01
 #define EXT_CSD_BKOPS_START         164
+#define EXT_CSD_BKOPS_SUPPORT_BIT   (1 << 0)
 
-// Sanitize start (EXT_CSD offset 157) — JESD84-B51
-#define EXT_CSD_SANITIZE_START      154
-#define EXT_CSD_ERASE_GROUP_DEF     175
-#define EXT_CSD_HC_WP_GRP_SIZE      221
+// HPI management (EXT_CSD offset 161)
+#define EXT_CSD_HPI_MGMT            161
+#define EXT_CSD_HPI_MGMT_EN          (1 << 0)
+
+// Boot WP (EXT_CSD offset 173)
 #define EXT_CSD_BOOT_WP             173
 #define EXT_CSD_BOOT_WP_STATUS      174
+
+// User WP (EXT_CSD offset 171)
+#define EXT_CSD_USER_WP             171
+
+// Reliable write (EXT_CSD offsets 166-167)
 #define EXT_CSD_WR_REL_PARAM        166
-#define EXT_CSD_FORCE_WR_REL        174
-#define EXT_CSD_BKOPS_EN_AUTO       0x01
+#define EXT_CSD_WR_REL_SET          167
+#define EXT_CSD_WR_REL_PARAM_HS_CTRL_REL  (1 << 2)
+
+// HC WP group size (EXT_CSD offset 221)
+#define EXT_CSD_HC_WP_GRP_SIZE      221
+
+// Erase group definition (EXT_CSD offset 175)
+#define EXT_CSD_ERASE_GROUP_DEF     175
+#define EXT_CSD_ERASE_GROUP_DEF_EN  0x01
+
+// BKOPS start / WP config key (EXT_CSD offset 164)
+#define EXT_CSD_WP_CFG_KEY          0x80
+
+// Partition setting completed (EXT_CSD offset 155) — OTP!
+#define EXT_CSD_PART_SETTING_COMPLETED 155
+
+// Sanitize start (EXT_CSD offset 165)
+#define EXT_CSD_SANITIZE_START      165
+
+// GP partition size multipliers (EXT_CSD offsets 143-154)
+#define EXT_CSD_GP_SIZE_MULT_1      143
+#define EXT_CSD_GP_SIZE_MULT_2      146
+#define EXT_CSD_GP_SIZE_MULT_3      149
+#define EXT_CSD_GP_SIZE_MULT_4      152
+
+// User WP bits
+#define EXT_CSD_USER_WP_PERM_WP_DIS    (1 << 0)
+#define EXT_CSD_USER_WP_PWR_WP_EN      (1 << 1)
+
+// Field firmware version (EXT_CSD offsets 254-261, 8 bytes)
+#define EXT_CSD_FW_VERSION          254
+
+// Command queue support (eMMC 5.1)
+#define EXT_CSD_CMDQ_SUPPORT        308
+#define EXT_CSD_CMDQ_DEPTH          307
+
+// Sleep/Awake (CMD5) timeouts
+#define EXT_CSD_SLEEP_AWAKE_TIMEOUT  217
+
+// MMC Sleep/Awake constants (CMD5)
+#define MMC_SLEEP_ARG               0x00000000
+#define MMC_AWAKE_ARG               0x00000001
+
+// Reliable write for RPMB: set bit 31 in CMD23 argument
+#define MMC_RELIABLE_WRITE_BIT       (1UL << 31)
 
 // Boot write protection values (EXT_CSD_BOOT_WP)
 #define EXT_CSD_BOOT_WP_BOOT1_PWR_WP_DIS  (0x01 << 1)
@@ -413,7 +465,6 @@
 #define EXT_CSD_BOOT_WP_BOOT1_WP_EN       (0x01 << 4)
 #define EXT_CSD_BOOT_WP_BOOT2_WP_EN       (0x01 << 5)
 #define EXT_CSD_BOOT_WP_RPMB_WP_EN         (0x01 << 6)
-#define EXT_CSD_BOOT_WP_BOOT1_WP_CFG_KEY   (0x01 << 7)
 
 // EXT_CSD HS_TIMING values
 #define EXT_CSD_RST_N_ENABLE    1
@@ -468,7 +519,7 @@
 #define MMC_HS_400MHZ_DDR      (1<<5)
 #define MMC_HS_400MHZ_ES       (1<<7)
 
-// CMD38 ERASE argument types (JEDEC per JESD84-B51)
+// CMD38 ERASE argument types
 #define MMC_ERASE_NORMAL          0x00000000
 #define MMC_ERASE_SECURE          0x80000000
 #define MMC_ERASE_TRIM            0x00000001
@@ -481,7 +532,8 @@
 #define MMC_SANITIZE_ARG           0x04000000  // CMD38 with BIT(26) for sanitize
 
 // EXT_CSD power off notification values
-#define EXT_CSD_POWER_OFF_LONG  0x02
+#define EXT_CSD_POWER_OFF_SHORT  0x02
+#define EXT_CSD_POWER_OFF_LONG  0x03
 #define EXT_CSD_POWER_ON        0x01
 
 // SD card capabilities
@@ -496,7 +548,7 @@
 #define TUNING_BLOCK_SIZE       64
 #define TUNING_BLOCK_SIZE_EMMC  128
 
-// Maximum erase timeout (seconds) — JEDEC spec allows up to 240s for trim
+// Maximum erase timeout
 #define MMC_ERASE_TIMEOUT_SEC   240
 
 // Partition count: User + Boot1 + Boot2 + RPMB + 4×GP
@@ -572,6 +624,12 @@ typedef struct {
   UINT32      Hs400Clksel;
   UINT32      Ciudiv;
   UINT32      FifoDepth;
+
+  //
+  // Security Management Unit (SMU) configuration
+  //
+  BOOLEAN     Secure;
+  UINT32      MpsSecurity;
 
   //
   // eMMC cache enabled
