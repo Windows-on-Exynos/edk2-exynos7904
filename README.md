@@ -1,7 +1,12 @@
-Attempt to create a minimal EDK2 for Exynos 7885 devices
+Attempt to create a minimal EDK2 for Exynos 9609 devices (i need to rename it for now)
+
+## Devices supported
+Motorola One Action (troika)
+
+Motorola One Vision (kane) (not tested but should work because are similar)
 
 ## Status
-Boots to UEFI Shell.
+Boots to UEFI Shell, UFS Works, but USB is WIP.
 
 ### Building
 Tested on Ubuntu 22.04.
