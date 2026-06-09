@@ -48,14 +48,16 @@ ExynosClockDxeInitialize (
 {
 	EFI_STATUS Status;
 
+	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Initializing Exynos Clock Driver\n"));
+	ExynosClockInit();
+
+	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Locating GPIO Protocol\n"));
+
 	Status = gBS->LocateProtocol (&gEfiExynosGpioProtocolGuid, NULL, (VOID *)&mGpioProtocol);
 	if (EFI_ERROR (Status)) {
 		DEBUG ((EFI_D_ERROR, "Failed to Locate GPIO Protocol! Status = %r\n", Status));
 		return Status;
 	}
-
-	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Initializing Exynos Clock Driver\n"));
-	ExynosClockInit();
 
 	return EFI_SUCCESS;
 }
