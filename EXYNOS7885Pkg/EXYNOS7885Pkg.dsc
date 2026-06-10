@@ -37,6 +37,7 @@
   PlatformUfsLib|EXYNOS7885Pkg/Library/PlatformUfsLib/PlatformUfsLib.inf
   UfsCalAdapterLib|EXYNOS7885Pkg/Library/UfsCalAdapterLib/UfsCalAdapterLib.inf
   ExynosClockLib|EXYNOS7885Pkg/Library/ExynosClockLib/ExynosClockLib.inf
+  UsiLib|EXYNOS7885Pkg/Library/UsiLib/UsiLib.inf
 
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
@@ -109,8 +110,8 @@
 [PcdsFixedAtBuild.common]
   gEfiMdePkgTokenSpaceGuid.PcdDefaultTerminalType|4
 
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVendor|L"Windows on Exynos 9610"
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"0.3-rc1"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVendor|L"Windows on Exynos"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString|L"0.3-rc2"
 
   # We only boot one processor here!
   gArmPlatformTokenSpaceGuid.PcdCoreCount|8
@@ -225,6 +226,7 @@
   EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
   EXYNOS7885Pkg/Drivers/SpeedyDxe/SpeedyDxe.inf
   EXYNOS7885Pkg/Drivers/PmicDxe/S2mpu09Dxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosUsiDxe/ExynosUsiDxe.inf
   EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
   EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
   EXYNOS7885Pkg/Drivers/ExynosSdMmcDxe/ExynosSdMmcDxe.inf

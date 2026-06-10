@@ -1,0 +1,14 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = UsiLib
+  FILE_GUID                      = 9A1B7C4D-3E2F-5A6B-7C8D-9E0F1A2B3C4D
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = UsiLib|DXE_DRIVER
+
+[Sources]
+  Usi.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
