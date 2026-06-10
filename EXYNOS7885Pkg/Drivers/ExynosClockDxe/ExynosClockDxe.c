@@ -28,7 +28,7 @@
 
 #include <Protocol/EfiGpio.h>
 
-// #include <Protocol/ExynosClock.h>
+#include <Protocol/ExynosClock.h>
 
 STATIC EFI_EXYNOS_GPIO_PROTOCOL *mGpioProtocol;
 

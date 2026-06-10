@@ -145,6 +145,7 @@ READ_LOCK_STATUS   = TRUE
   INF EXYNOS7885Pkg/Drivers/PmicDxe/S2mpu09Dxe.inf
   INF EXYNOS7885Pkg/Drivers/ExynosUsiDxe/ExynosUsiDxe.inf
   INF EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
+  INF EXYNOS7885Pkg/Drivers/ExynosUSBDxe/ExynosUSBDxe.inf
 
   #
   # Platform Dxes

@@ -230,6 +230,7 @@
   EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
   EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
   EXYNOS7885Pkg/Drivers/ExynosSdMmcDxe/ExynosSdMmcDxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosUSBDxe/ExynosUSBDxe.inf
 
   #
   # Platform Dxes
