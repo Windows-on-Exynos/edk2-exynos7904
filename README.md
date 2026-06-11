@@ -186,7 +186,7 @@ Zhuowei for making edk2-pixel3
 
 halal-beef and Sota4Ever for porting UFS Driver to Exynos9830 and Exynos9610
 
-Sota4Ever for porting SdMmcDxe and UsiDxe to Exynos9610
+Sota4Ever for porting SdMmcDxe, UsiDxe and ResetSystemLib to Exynos9610
 
 Project-Silicium for porting Speedy, PmicDxe and UsiDxe to Exynos platforms
 

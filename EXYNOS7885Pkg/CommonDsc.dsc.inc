@@ -66,7 +66,8 @@
   ArmSmcLib|ArmPkg/Library/ArmSmcLib/ArmSmcLib.inf
   ArmMmuLib|ArmPkg/Library/ArmMmuLib/ArmMmuBaseLib.inf
 
-  ResetSystemLib|ArmPkg/Library/ArmPsciResetSystemLib/ArmPsciResetSystemLib.inf
+  HwResetSystemLib|EXYNOS7885Pkg/Library/ResetSystemLib/ResetSystemLib.inf
+  ResetSystemLib|EXYNOS7885Pkg/Library/ResetSystemLib/ResetSystemLib.inf
   DtPlatformDtbLoaderLib|EmbeddedPkg/Library/DxeDtPlatformDtbLoaderLibDefault/DxeDtPlatformDtbLoaderLibDefault.inf
 
   #
