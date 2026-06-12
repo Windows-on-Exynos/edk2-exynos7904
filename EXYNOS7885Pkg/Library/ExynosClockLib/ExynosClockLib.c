@@ -22,12 +22,10 @@
 
 #include "ExynosClock.h"
 
-
-
 EFI_STATUS
 ExynosClockInit (VOID)
 {
 	DEBUG ((EFI_D_INFO, "[ExynosClockDxe]: Clock Init\n"));
-	
+
 	return EFI_SUCCESS;
 }

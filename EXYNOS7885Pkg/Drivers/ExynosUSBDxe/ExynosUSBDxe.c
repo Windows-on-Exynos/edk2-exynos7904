@@ -51,7 +51,10 @@
 #define PDIV_BIT8			8
 #define SDIV_BIT0			0
 
-
+#define EXYNOS_USBCON_CLKRST		(0x20)
+#define EXYNOS_USBCON_UTMI			(0x50)
+#define EXYNOS_USBCON_HSP			(0x54)
+#define EXYNOS_USBCON_HSP_TEST		(0x5c)
 
 
 #define USB_INT_NUM	(186 + 32)
