@@ -1,0 +1,30 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = UsbDeviceDxe
+  FILE_GUID                      = D4E5F6A7-B8C9-4D0E-A1B2-C3D4E5F6A7B8
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = InitializeUsbDevice
+
+[Sources]
+  UsbDevice.c
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gEfiUsbFunctionIoProtocolGuid
+  gUsbDeviceProtocolGuid
+
+[Depex]
+  gEfiUsbFunctionIoProtocolGuid

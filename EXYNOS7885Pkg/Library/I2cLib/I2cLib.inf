@@ -1,0 +1,14 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = I2cLib
+  FILE_GUID                      = B8E9A1D2-4C5F-6D7E-8A9B-0C1D2E3F4A5C
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = I2cLib|DXE_DRIVER
+
+[Sources]
+  I2c.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec

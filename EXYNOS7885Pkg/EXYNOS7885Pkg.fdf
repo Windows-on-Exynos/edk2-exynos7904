@@ -142,10 +142,11 @@ READ_LOCK_STATUS   = TRUE
   INF EXYNOS7885Pkg/Drivers/GpioDxe/GpioDxe.inf
   INF EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
   INF EXYNOS7885Pkg/Drivers/SpeedyDxe/SpeedyDxe.inf
-  INF EXYNOS7885Pkg/Drivers/PmicDxe/S2mpu09Dxe.inf
+  INF EXYNOS7885Pkg/Drivers/PmicDxe/PmicDxe.inf
   INF EXYNOS7885Pkg/Drivers/ExynosUsiDxe/ExynosUsiDxe.inf
+  INF EXYNOS7885Pkg/Drivers/HsI2cDxe/HsI2cDxe.inf
+  INF EXYNOS7885Pkg/Drivers/I2cDxe/I2cDxe.inf
   INF EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
-  INF EXYNOS7885Pkg/Drivers/ExynosUSBDxe/ExynosUSBDxe.inf
 
   #
   # Platform Dxes
@@ -178,7 +179,9 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
 
   INF EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
-  INF EXYNOS7885Pkg/Drivers/ExynosSdMmcDxe/ExynosSdMmcDxe.inf
+  INF EXYNOS7885Pkg/Drivers/UsbPhyDxe/UsbPhyDxe.inf
+  INF EXYNOS7885Pkg/Drivers/Dwc3DeviceDxe/Dwc3DeviceDxe.inf
+  INF EXYNOS7885Pkg/Drivers/UsbDeviceDxe/UsbDeviceDxe.inf
 
   INF FatPkg/EnhancedFatDxe/Fat.inf
   INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf

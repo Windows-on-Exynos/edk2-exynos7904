@@ -1,0 +1,20 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = UsbPhyLib
+  FILE_GUID                      = B1C2D3E4-5F6A-7B8C-9D0E-1F2A3B4C5D6E
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = UsbPhyLib|DXE_DRIVER
+
+[Sources]
+  UsbPhy.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  DebugLib
+  IoLib
+  UefiBootServicesTableLib

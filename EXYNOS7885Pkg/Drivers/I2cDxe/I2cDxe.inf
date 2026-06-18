@@ -1,0 +1,32 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = I2cDxe
+  FILE_GUID                      = C1D2E3F4-A5B6-7890-C1D2-E3F4A5B67890
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = InitI2c
+
+[Sources]
+  I2c.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  DebugLib
+  BaseMemoryLib
+  MemoryAllocationHelperLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  TimerLib
+  IoLib
+  I2cLib
+
+[Protocols]
+  gEfiGpioProtocolGuid
+  gEfiI2cProtocolGuid
+
+[Depex]
+  TRUE

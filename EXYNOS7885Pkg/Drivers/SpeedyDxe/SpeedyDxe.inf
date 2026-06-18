@@ -7,7 +7,7 @@
   ENTRY_POINT                    = InitSpeedy
 
 [Sources]
-  SpeedyDxe.c
+  Speedy.c
 
 [Packages]
   ArmPkg/ArmPkg.dec
@@ -16,11 +16,10 @@
 
 [LibraryClasses]
   DebugLib
-  PrintLib
-  BaseMemoryLib
+  MemoryAllocationHelperLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
-  TimerLib
+  SpeedyLib
   IoLib
 
 [Protocols]

@@ -1,0 +1,19 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Dwc3Lib
+  FILE_GUID                      = A1B2C3D4-5E6F-7A8B-9C0D-1E2F3A4B5C6D
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = Dwc3Lib|DXE_DRIVER
+
+[Sources]
+  Dwc3.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  DebugLib
+  IoLib
+  UefiBootServicesTableLib

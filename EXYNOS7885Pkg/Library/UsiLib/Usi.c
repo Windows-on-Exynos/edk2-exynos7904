@@ -11,35 +11,171 @@
 STATIC
 EFI_USI_DATA
 gUsiData[] = {
-  // USI Address, Controller Address, HSI2C Bus Number, SPI Bus Number, UART Bus Number
-
+  //
   // SYSREG SHUB
-  {0x11013000, 0x110C0000,  0,  0,  1},
-  {0x11013004, 0x110D0000,  1, -1, -1},
+  //
+  {
+    .UsiAddress        = 0x11013000,
+    .ControllerAddress = 0x110C0000,
+    .I2cBus            = 0,
+    .SpiBus            = 0,
+    .UartBus           = 1
+  },
+  {
+    .UsiAddress        = 0x11013004,
+    .ControllerAddress = 0x110D0000,
+    .I2cBus            = 1,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
 
+  //
   // SYSREG CMGP
-  {0x11C12000, 0x11D00000,  2,  1,  2},
-  {0x11C12004, 0x11D10000,  3, -1, -1},
-  {0x11C12010, 0x11D20000,  4,  2,  3},
-  {0x11C12014, 0x11D30000,  5, -1, -1},
-  {0x11C12020, 0x11D40000,  6,  3,  4},
-  {0x11C12024, 0x11D50000,  7, -1, -1},
-  {0x11C12030, 0x11D60000,  8,  4,  5},
-  {0x11C12034, 0x11D70000,  9, -1, -1},
-  {0x11C12040, 0x11D80000, 10,  5,  6},
-  {0x11C12044, 0x11D90000, 11, -1, -1},
+  //
+  {
+    .UsiAddress        = 0x11C12000,
+    .ControllerAddress = 0x11D00000,
+    .I2cBus            = 2,
+    .SpiBus            = 1,
+    .UartBus           = 2
+  },
+  {
+    .UsiAddress        = 0x11C12004,
+    .ControllerAddress = 0x11D10000,
+    .I2cBus            = 3,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x11C12010,
+    .ControllerAddress = 0x11D20000,
+    .I2cBus            = 4,
+    .SpiBus            = 2,
+    .UartBus           = 3
+  },
+  {
+    .UsiAddress        = 0x11C12014,
+    .ControllerAddress = 0x11D30000,
+    .I2cBus            = 5,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x11C12020,
+    .ControllerAddress = 0x11D40000,
+    .I2cBus            = 6,
+    .SpiBus            = 3,
+    .UartBus           = 4
+  },
+  {
+    .UsiAddress        = 0x11C12024,
+    .ControllerAddress = 0x11D50000,
+    .I2cBus            = 7,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x11C12030,
+    .ControllerAddress = 0x11D60000,
+    .I2cBus            = 8,
+    .SpiBus            = 4,
+    .UartBus           = 5
+  },
+  {
+    .UsiAddress        = 0x11C12034,
+    .ControllerAddress = 0x11D70000,
+    .I2cBus            = 9,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x11C12040,
+    .ControllerAddress = 0x11D80000,
+    .I2cBus            = 10,
+    .SpiBus            = 5,
+    .UartBus           = 6
+  },
+  {
+    .UsiAddress        = 0x11C12044,
+    .ControllerAddress = 0x11D90000,
+    .I2cBus            = 11,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
 
+  //
   // SYSREG PERI
-  {0x10011010, 0x13820000, -1, -1,  0},
-  {0x10011020, 0x138A0000, 12, -1, -1},
-  {0x10011024, 0x138B0000, 13, -1, -1},
-  {0x10011028, 0x138C0000, 14, -1, -1},
-  {0x1001102C, 0x138D0000, 15, -1, -1},
-  {0x10011030, 0x13900000, -1,  6, -1},
-  {0x10011034, 0x13910000, -1,  7, -1},
-  {0x10011038, 0x13940000, -1,  9, -1},
-  {0x1001103C, 0x13920000, 16,  8,  7},
-  {0x10011040, 0x13930000, 17, -1, -1}
+  //
+  {
+    .UsiAddress        = 0x10011010,
+    .ControllerAddress = 0x13820000,
+    .I2cBus            = MAX_UINT8,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = 0
+  },
+  {
+    .UsiAddress        = 0x10011020,
+    .ControllerAddress = 0x138A0000,
+    .I2cBus            = 12,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x10011024,
+    .ControllerAddress = 0x138B0000,
+    .I2cBus            = 13,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x10011028,
+    .ControllerAddress = 0x138C0000,
+    .I2cBus            = 14,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x1001102C,
+    .ControllerAddress = 0x138D0000,
+    .I2cBus            = 15,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x10011030,
+    .ControllerAddress = 0x13900000,
+    .I2cBus            = MAX_UINT8,
+    .SpiBus            = 6,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x10011034,
+    .ControllerAddress = 0x13910000,
+    .I2cBus            = MAX_UINT8,
+    .SpiBus            = 7,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x10011038,
+    .ControllerAddress = 0x13940000,
+    .I2cBus            = MAX_UINT8,
+    .SpiBus            = 9,
+    .UartBus           = MAX_UINT8
+  },
+  {
+    .UsiAddress        = 0x1001103C,
+    .ControllerAddress = 0x13920000,
+    .I2cBus            = 16,
+    .SpiBus            = 8,
+    .UartBus           = 7
+  },
+  {
+    .UsiAddress        = 0x10011040,
+    .ControllerAddress = 0x13930000,
+    .I2cBus            = 17,
+    .SpiBus            = MAX_UINT8,
+    .UartBus           = MAX_UINT8
+  }
 };
 
 VOID

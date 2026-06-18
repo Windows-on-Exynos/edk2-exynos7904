@@ -1,0 +1,14 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = PmicLib
+  FILE_GUID                      = E7C1A5A0-7B4F-4B6C-9E2D-18F3C8A0D5B6
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = PmicLib|DXE_DRIVER
+
+[Sources]
+  Pmic.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec

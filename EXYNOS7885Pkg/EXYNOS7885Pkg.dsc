@@ -32,13 +32,22 @@
   RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
   VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
   VariableFlashInfoLib|MdeModulePkg/Library/BaseVariableFlashInfoLib/BaseVariableFlashInfoLib.inf
-  GpioBankLib|EXYNOS7885Pkg/Library/GpioBankLib/GpioBankLib.inf
+  GpioLib|EXYNOS7885Pkg/Library/GpioLib/GpioLib.inf
+  PmicLib|EXYNOS7885Pkg/Library/PmicLib/PmicLib.inf
   MmcPlatformLib|EXYNOS7885Pkg/Library/PlatformMmcLib/PlatformMmcLib.inf
   PlatformUfsLib|EXYNOS7885Pkg/Library/PlatformUfsLib/PlatformUfsLib.inf
   UfsCalAdapterLib|EXYNOS7885Pkg/Library/UfsCalAdapterLib/UfsCalAdapterLib.inf
   ExynosClockLib|EXYNOS7885Pkg/Library/ExynosClockLib/ExynosClockLib.inf
+  SpeedyLib|EXYNOS7885Pkg/Library/SpeedyLib/SpeedyLib.inf
   UsiLib|EXYNOS7885Pkg/Library/UsiLib/UsiLib.inf
+  HsI2cLib|EXYNOS7885Pkg/Library/HsI2cLib/HsI2cLib.inf
+  I2cLib|EXYNOS7885Pkg/Library/I2cLib/I2cLib.inf
 
+  #
+  # USB Libraries
+  #
+  Dwc3Lib|EXYNOS7885Pkg/Library/Dwc3Lib/Dwc3Lib.inf
+  UsbPhyLib|EXYNOS7885Pkg/Library/UsbPhyLib/UsbPhyLib.inf
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
   VariablePolicyLib|MdeModulePkg/Library/VariablePolicyLib/VariablePolicyLibRuntimeDxe.inf
@@ -225,12 +234,15 @@
   EXYNOS7885Pkg/Drivers/GpioDxe/GpioDxe.inf
   EXYNOS7885Pkg/Drivers/ExynosClockDxe/ExynosClockDxe.inf
   EXYNOS7885Pkg/Drivers/SpeedyDxe/SpeedyDxe.inf
-  EXYNOS7885Pkg/Drivers/PmicDxe/S2mpu09Dxe.inf
+  EXYNOS7885Pkg/Drivers/PmicDxe/PmicDxe.inf
   EXYNOS7885Pkg/Drivers/ExynosUsiDxe/ExynosUsiDxe.inf
   EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
+  EXYNOS7885Pkg/Drivers/HsI2cDxe/HsI2cDxe.inf
+  EXYNOS7885Pkg/Drivers/I2cDxe/I2cDxe.inf
   EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
-  EXYNOS7885Pkg/Drivers/ExynosSdMmcDxe/ExynosSdMmcDxe.inf
-  EXYNOS7885Pkg/Drivers/ExynosUSBDxe/ExynosUSBDxe.inf
+  EXYNOS7885Pkg/Drivers/Dwc3DeviceDxe/Dwc3DeviceDxe.inf
+  EXYNOS7885Pkg/Drivers/UsbPhyDxe/UsbPhyDxe.inf
+  EXYNOS7885Pkg/Drivers/UsbDeviceDxe/UsbDeviceDxe.inf
 
   #
   # Platform Dxes

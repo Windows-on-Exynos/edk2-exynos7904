@@ -3,7 +3,7 @@
 #include <Library/IoLib.h>
 #include <Library/UfsHostBridge.h>
 
-#include <Protocol/EfiGpio.h>
+#include <Protocol/EFIGpio.h>
 
 #define WARM_RESET                     (1U << 28)
 #define LITTLE_WDT_RESET               (1U << 24)
@@ -36,7 +36,7 @@
 #define EXYNOS9610_SYSREG_FSYS_BASE    0x13410000
 #define EXYNOS9610_SYSREG_IOCOHERENCY  (EXYNOS9610_SYSREG_FSYS_BASE + 0x1010)
 
-STATIC EFI_EXYNOS_GPIO_PROTOCOL *mGpioProtocol;
+STATIC EFI_GPIO_PROTOCOL *mGpioProtocol;
 
 STATIC
 VOID
@@ -69,7 +69,7 @@ UfsBoardInit (struct UfsHost *Ufs)
   UINT32 dfd_en = MmioRead32(EXYNOS9610_PMU_SEQUENCER);
   EFI_STATUS Status;
 
-  Status = gBS->LocateProtocol (&gEfiExynosGpioProtocolGuid, NULL, (VOID *)&mGpioProtocol);
+  Status = gBS->LocateProtocol (&gEfiGpioProtocolGuid, NULL, (VOID *)&mGpioProtocol);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "UFS: Failed to Locate GPIO Protocol! Status = %r\n", Status));
     return Status;
@@ -96,32 +96,32 @@ UfsBoardInit (struct UfsHost *Ufs)
   // TODO : Hook this in with the actual GPIO driver, instead of direct memory writes.
 
   /* GPIO: RST_N and REFCLK */
-  Status = mGpioProtocol->SetPull(0, GPIO_BANK_ID_F, 0, GPIO_PULL_NONE);
+  Status = mGpioProtocol->SetPinPull(BANK_ID_F, 0, 0, PULL_NONE);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to set GPIO pull for RST_N! Status = %r\n", Status));
     return Status;
   }
 
-  Status = mGpioProtocol->SetPull(0, GPIO_BANK_ID_F, 1, GPIO_PULL_NONE);
+  Status = mGpioProtocol->SetPinPull(BANK_ID_F, 0, 1, PULL_NONE);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to set GPIO pull for REFCLK! Status = %r\n", Status));
     return Status;
   }
 
-  Status = mGpioProtocol->ConfigurePin(0, GPIO_BANK_ID_F, 0, 3);
+  Status = mGpioProtocol->SetPinFunction(BANK_ID_F, 0, 0, FUNCTION_3);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to configure GPIO pin for RST_N (GPF0-0)! Status = %r\n", Status));
     return Status;
   }
 
-  Status = mGpioProtocol->ConfigurePin(0, GPIO_BANK_ID_F, 1, 3);
+  Status = mGpioProtocol->SetPinFunction(BANK_ID_F, 0, 1, FUNCTION_3);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to configure GPIO pin for REFCLK (GPF0-1)! Status = %r\n", Status));
     return Status;
   }
 
   /* XBOOTLDO GPG4[0] — UFS VCC */
-  Status = mGpioProtocol->ConfigurePin(4, GPIO_BANK_ID_G, 0, GPIO_OUTPUT);
+  Status = mGpioProtocol->SetPinFunction(BANK_ID_G, 4, 0, FUNCTION_OUTPUT);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to configure GPG4-0! Status = %r\n", Status));
     return Status;

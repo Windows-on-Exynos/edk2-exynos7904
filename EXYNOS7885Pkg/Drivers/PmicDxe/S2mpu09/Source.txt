@@ -1,0 +1,4 @@
+REPO:   https://github.com/exynos990-mainline/lk3rd/
+BRANCH: dev
+FILES:  platform/maestro9610/include/platform/pmic_s2mpu09.h
+        platform/maestro9610/pmic/pmic_s2mpu09.c

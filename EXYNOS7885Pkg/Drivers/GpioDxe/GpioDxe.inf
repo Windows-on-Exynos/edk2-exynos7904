@@ -4,10 +4,10 @@
   FILE_GUID                      = EE3A2698-EFBB-4E07-8A2F-82C92C371456
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
-  ENTRY_POINT                    = InitGpioDriver
+  ENTRY_POINT                    = InitGpio
 
 [Sources]
-  GpioDxe.c
+  Gpio.c
 
 [Packages]
   ArmPkg/ArmPkg.dec
@@ -15,14 +15,16 @@
   EXYNOS7885Pkg/EXYNOS7885Pkg.dec
 
 [LibraryClasses]
+  DebugLib
+  MemoryAllocationHelperLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
-  GpioBankLib
-  DebugLib
+  DxeServicesTableLib
+  GpioLib
   IoLib
 
 [Protocols]
-  gEfiExynosGpioProtocolGuid
+  gEfiGpioProtocolGuid
 
 [Depex]
   TRUE
