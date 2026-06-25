@@ -190,6 +190,6 @@ halal-beef for porting ExynosAdcDxe to Exynos9830
 
 Sota4Ever for porting SdMmcDxe, UsiDxe, Usb and UartDxe Drivers to Exynos9610
 
-Project-Silicium for porting Speedy, PmicDxe and UsiDxe to Exynos platforms
+Project-Silicium for porting Speedy, PmicDxe, UsiDxe, and ExynosGpioDxe to Exynos platforms
 
 All the people in ``EDKII pain and misery, struggles and disappointment`` on Discord.
