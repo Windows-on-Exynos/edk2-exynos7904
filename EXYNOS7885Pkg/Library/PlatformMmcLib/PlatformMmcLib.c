@@ -5,8 +5,8 @@
 #include <Library/TimerLib.h>
 #include <Library/MmcPlatformLib.h>
 #include <Library/DwMmcRegs.h>
-#include <Protocol/EfiGpio.h>
-#include <Protocol/EfiSpeedy.h>
+#include <Protocol/EFIGpio.h>
+#include <Protocol/EFISpeedy.h>
 #include <Drivers/PmicDxe/S2mpu09.h>
 
 #define DW_MMC0_BASE   0x13500000

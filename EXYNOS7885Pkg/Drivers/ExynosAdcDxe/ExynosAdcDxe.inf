@@ -1,0 +1,27 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = AdcDxe
+  FILE_GUID                      = D5A5DCD5-0E60-4FBF-9512-B8F3E20C1471
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = RegisterAdc
+
+[Sources]
+  ExynosAdcDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  DebugLib
+  MemoryAllocationHelperLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  IoLib
+
+[Protocols]
+  gEfiAdcProtocolGuid
+
+[Depex]
+  TRUE

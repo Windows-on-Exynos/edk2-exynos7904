@@ -1,6 +1,17 @@
 #ifndef _DWC3_LIB_H_
 #define _DWC3_LIB_H_
 
+#define EXYNOS9610_USB_PHY_BASE							0x131D0000
+#define EXYNOS9610_USB_LINK_BASE						0x13200000
+
+/*
+ * USB Controller power registers (relative to USB_LINK_BASE 0x13200000)
+ * Based on stock S-BOOT reverse engineering
+ */
+#define USB_REG_PWR1		0xC200
+#define USB_REG_PWR2		0xC2C0
+#define USB_PWR_BIT		(1 << 31)
+
 //
 // DWC3 Platform Configuration
 //
@@ -22,10 +33,20 @@ typedef struct {
   UINT32       Guctl1;
   UINT32       NumHsPhy;
   UINT32       NumSsPhy;
+  UINT32	   MeBurstLength;
   BOOLEAN      SusPhySupported;
   UINT32       RefClk;
   UINT32       SuspendClk;
 } DWC3_PLAT_CONFIG;
+
+typedef struct {
+  CHAR8		  Speed[16];
+  UINT32	  m_uEventBufDepth;
+  UINT32	  m_uCtrlBufSize;
+  UINT8		  m_ucU1ExitValue;
+  CHAR16	  m_usU2ExitValue;
+  UINT32	  NeedCacheOps;
+} DWC3_DEV_CONFIG;
 
 //
 // DWC3 operation mode
@@ -34,6 +55,12 @@ typedef enum {
   DWC3_MODE_HOST   = 0,
   DWC3_MODE_DEVICE = 1,
 } DWC3_OP_MODE;
+
+EFI_STATUS
+Dwc3DevPlatInit (
+  VOID **BaseAddr,
+  DWC3_DEV_CONFIG **PlatConfig
+  );
 
 /**
   Returns the DWC3 Platform Configuration for the current SoC.

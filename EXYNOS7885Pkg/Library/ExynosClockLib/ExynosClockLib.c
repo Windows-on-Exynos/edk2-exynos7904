@@ -1,4 +1,5 @@
 /*
+ * Samsung Exynos9610 Clock Driver
  * Copyright (C) 2025-2026 viZPilot.
  *
  * This program is free software; you can redistribute it and/or

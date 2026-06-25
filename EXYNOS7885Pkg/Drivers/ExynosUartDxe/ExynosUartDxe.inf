@@ -1,0 +1,34 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = UartDxe
+  FILE_GUID                      = 2B6A21D8-6B0C-4F1E-B7F6-4E32A8D1C5E9
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = InitializeUart
+
+[Sources]
+  ExynosUart.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  DebugLib
+  MemoryAllocationHelperLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  TimerLib
+  IoLib
+  ExynosUartLib
+
+[Protocols]
+  gEfiSerialIoProtocolGuid
+  gEfiUsiProtocolGuid
+  gEfiGpioProtocolGuid
+
+[Depex]
+  gEfiUsiProtocolGuid
+  AND gEfiGpioProtocolGuid

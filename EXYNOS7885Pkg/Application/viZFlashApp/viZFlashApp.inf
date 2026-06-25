@@ -1,0 +1,37 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = viZFlashApp
+  FILE_GUID                      = 0EC26662-AF31-45BC-846B-D3846F5B3B8E
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = viZFlashMain
+
+[Sources]
+  viZFlash.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  EXYNOS7885Pkg/EXYNOS7885Pkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  DebugLib
+  PrintLib
+  DevicePathLib
+
+[Protocols]
+  gEfiBlockIoProtocolGuid
+  gEfiDiskIoProtocolGuid
+  gEfiPartitionInfoProtocolGuid
+  gEfiUsbFunctionIoProtocolGuid
+  gUsbDeviceProtocolGuid
+
+[Depex]
+  TRUE

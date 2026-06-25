@@ -82,7 +82,7 @@ UsbDevStart (
   if (!mStarted) {
     Status = mUsbfnIo->StartController (mUsbfnIo);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "UsbDev: StartController failed (%r)\n", Status));
+      DEBUG ((EFI_D_ERROR, "UsbDev: StartController failed (%r)\n", Status));
       return Status;
     }
   }
@@ -135,7 +135,7 @@ UsbDevStart (
   FreePool (CfgInfo);
 
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "UsbDev: ConfigureEnableEndpoints failed (%r)\n", Status));
+    DEBUG ((EFI_D_ERROR, "UsbDev: ConfigureEnableEndpoints failed (%r)\n", Status));
     return Status;
   }
 
@@ -242,7 +242,7 @@ InitializeUsbDevice (
                   (VOID **)&mUsbfnIo
                   );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "UsbDeviceDxe: USBFN protocol not found (%r)\n", Status));
+    DEBUG ((EFI_D_ERROR, "UsbDeviceDxe: USBFN protocol not found (%r)\n", Status));
     return Status;
   }
 
@@ -258,7 +258,7 @@ InitializeUsbDevice (
                   NULL
                   );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "UsbDeviceDxe: InstallProtocol failed (%r)\n", Status));
+    DEBUG ((EFI_D_ERROR, "UsbDeviceDxe: InstallProtocol failed (%r)\n", Status));
     return Status;
   }
 

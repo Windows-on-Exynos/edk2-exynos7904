@@ -61,16 +61,16 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
 
 //--------------------- DDR --------------------- */
 
-    {"HLOS 0",             0x80000000, 0x00C00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv, WRITE_BACK_XN},
-    {"UEFI Stack",         0x80C00000, 0x00040000, AddMem, SYS_MEM, SYS_MEM_CAP,  BsData, WRITE_BACK},
-    {"CPU Vectors",        0x80C40000, 0x00010000, AddMem, SYS_MEM, SYS_MEM_CAP,  BsCode, WRITE_BACK},
-    {"HLOS 1",             0x80C50000, 0x133B0000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
-    {"UEFI FD",            0x94000000, 0x00200000, AddMem, SYS_MEM, SYS_MEM_CAP, BsCode, WRITE_BACK},
-    {"HLOS 1.5",           0x94200000, 0x2BA00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
+    {"HLOS 0",             0x80000000, 0x00C00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv, 	  WRITE_BACK_XN},
+    {"UEFI Stack",         0x80C00000, 0x00040000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData,  WRITE_BACK},
+    {"CPU Vectors",        0x80C40000, 0x00010000, AddMem, SYS_MEM, SYS_MEM_CAP, BsCode,  WRITE_BACK},
+    {"HLOS 1",             0x80C50000, 0x133B0000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,    WRITE_BACK},
+    {"UEFI FD",            0x94000000, 0x00200000, AddMem, SYS_MEM, SYS_MEM_CAP, BsCode,  WRITE_BACK},
+    {"HLOS 1.5",           0x94200000, 0x2BA00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,    WRITE_BACK},
     /*Memory hole 0xbbc00000 -> 0xc0000000*/
-    {"HLOS 3",             0xBFC00000, 0x2D400000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
-    {"Display Reserved",   0xED000000, 0x01400000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
-    {"HLOS 4",             0xEE400000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP,  Conv,   WRITE_BACK},
+    {"HLOS 3",             0xBFC00000, 0x2D400000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,    WRITE_BACK},
+    {"Display Reserved",   0xED000000, 0x01400000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv,  WRITE_THROUGH_XN},
+    {"HLOS 4",             0xEE400000, 0x13800000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,    WRITE_BACK},
 
 //--------------------- Register ---------------------
     {"Chip Info",          0x10000000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
@@ -82,12 +82,13 @@ static ARM_MEMORY_REGION_DESCRIPTOR_EX gDeviceMemoryDescriptorEx[] = {
 	{"Speedy",             0x11A10000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Sysreg CMGP",        0x11C12000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Pinctrl CMGP",       0x11C20000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"ADC",                0x11C30000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Clock Controller",   0x12100000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Gic Distributor",    0x12301000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Gic Redistributor",  0x12302000, 0x00006000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"CMU USB", 		   0x13030000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
-	{"USB PHY DRD",        0x131D0000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
-	{"USB PHY CTRL",       0x13200000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"USB PHY",        	   0x131D0000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
+	{"DWC3 USB",	       0x13200000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"CMU FSYS",           0x13400000, 0x00008000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Sysreg FSYS",        0x13410000, 0x00002000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},
 	{"Pinctrl FSYS",       0x13490000, 0x00001000, AddDev, MMAP_IO, UNCACHEABLE, MmIO,   DEVICE},

@@ -1,4 +1,5 @@
 /*
+ * Samsung Exynos Clock Driver
  * Copyright (C) 2025-2026 viZPilot.
  *
  * This program is free software; you can redistribute it and/or
@@ -28,9 +29,20 @@
 
 #include <Protocol/EFIGpio.h>
 
-#include <Protocol/ExynosClock.h>
+#include <Protocol/ExynosClockProtocol.h>
 
 STATIC EFI_GPIO_PROTOCOL *mGpioProtocol;
+
+#define EXYNOS_CLKOUT_NR_CLKS		1
+#define EXYNOS_CLKOUT_PARENTS		32
+
+#define EXYNOS_PMU_DEBUG_REG		0xa00
+#define EXYNOS_CLKOUT_DISABLE_SHIFT	0
+#define EXYNOS_CLKOUT_MUX_SHIFT		8
+#define EXYNOS4_CLKOUT_MUX_MASK		0xf
+#define EXYNOS5_CLKOUT_MUX_MASK		0x1f
+
+
 
 /**
   Initialize the state information for the ExynosClockDxe
@@ -51,11 +63,11 @@ ExynosClockDxeInitialize (
 	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Initializing Exynos Clock Driver\n"));
 	ExynosClockInit();
 
-	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Locating GPIO Protocol\n"));
+	DEBUG((EFI_D_INFO, "[ExynosClockDxe]: Locating Exynos GPIO Protocol\n"));
 
 	Status = gBS->LocateProtocol (&gEfiGpioProtocolGuid, NULL, (VOID *)&mGpioProtocol);
 	if (EFI_ERROR (Status)) {
-		DEBUG ((EFI_D_ERROR, "Failed to Locate GPIO Protocol! Status = %r\n", Status));
+		DEBUG ((EFI_D_ERROR, "Failed to Locate Exynos GPIO Protocol! Status = %r\n", Status));
 		return Status;
 	}
 

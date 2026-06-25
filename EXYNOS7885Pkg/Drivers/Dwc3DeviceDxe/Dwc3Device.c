@@ -200,7 +200,7 @@ Dwc3EpWaitCmd (
     gBS->Stall (1);
   } while (Timeout-- > 0);
 
-  DEBUG ((DEBUG_ERROR, "Dwc3Dev: EP%d %s cmd timeout (cmd=0x%08x reg=0x%llx)\n",
+  DEBUG ((EFI_D_ERROR, "Dwc3Dev: EP%d %s cmd timeout (cmd=0x%08x reg=0x%llx)\n",
           EpNum, (Dir == Dwc3EpDirIn) ? "IN" : "OUT", Cmd, Base));
   return EFI_TIMEOUT;
 }
@@ -762,7 +762,7 @@ Dwc3Ep0Init (
              DEPCMD_START_NEW_CFG | DEPCMD_CMD_ACTIVE);
   Status = Dwc3EpWaitCmd (Dev, Dwc3EpDirOut, 0);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3Dev: EP0 StartNewCfg failed (%r)\n", Status));
+    DEBUG ((EFI_D_ERROR, "Dwc3Dev: EP0 StartNewCfg failed (%r)\n", Status));
     return Status;
   }
 
@@ -1418,7 +1418,7 @@ Dwc3DeviceInit (
 
   Status = Dwc3Ep0Init (Dev);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3Dev: EP0 init failed (%r)\n", Status));
+    DEBUG ((EFI_D_ERROR, "Dwc3Dev: EP0 init failed (%r)\n", Status));
     return Status;
   }
 
@@ -1960,7 +1960,7 @@ Dwc3FnStartController (
   //
   Status = Dwc3DeviceInit (Dev);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: DeviceInit failed (%r)\n", Status));
+    DEBUG ((EFI_D_ERROR, "Dwc3DeviceDxe: DeviceInit failed (%r)\n", Status));
     return Status;
   }
 
@@ -2102,129 +2102,112 @@ InitializeDwc3Device (
 {
   EFI_STATUS     Status;
   DWC3_DEV_CTX  *Dev;
+  EFI_HANDLE     UsbFnHandle;
 
   DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Entry\n"));
 
-  //
-  // Allocate driver context
-  //
   Dev = AllocateZeroPool (sizeof (DWC3_DEV_CTX));
   if (Dev == NULL) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: Context allocation failed\n"));
+    DEBUG ((EFI_D_ERROR, "Dwc3DeviceDxe: Context allocation failed\n"));
     return EFI_OUT_OF_RESOURCES;
   }
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Context allocated at %p\n", Dev));
 
-  //
-  // Load platform config from SoC library
-  //
   Status = GetDwc3PlatConfig (&Dev->PlatConfig);
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: GetDwc3PlatConfig -> %r\n", Status));
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: GetDwc3PlatConfig failed (%r)\n",
-            Status));
     goto ErrorExit;
   }
 
-  //
-  // Map DWC3 controller MMIO region before any access
-  //
-  Status = MapMemoryRegion (Dev->PlatConfig.BaseAddress,
-                            Dev->PlatConfig.BaseSize,
-                            EfiMemoryMappedIO);
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Base=0x%lx Size=0x%lx\n",
+          Dev->PlatConfig.BaseAddress,
+          Dev->PlatConfig.BaseSize));
+
+  Status = MapMemoryRegion (
+             Dev->PlatConfig.BaseAddress,
+             Dev->PlatConfig.BaseSize,
+             EfiMemoryMappedIO
+             );
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: MapMemoryRegion -> %r\n", Status));
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: MapMemoryRegion failed (%r)\n",
-            Status));
     goto ErrorExit;
   }
 
   Dev->Dwc3Base = Dev->PlatConfig.BaseAddress;
 
-  //
-  // Allocate event buffer (4 bytes * 64 events = 256 bytes, aligned to 4)
-  //
   Dev->EventBuffer = AllocateZeroPool (4 * EVENT_BUF_DEPTH);
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: EventBuffer=%p\n", Dev->EventBuffer));
   if (Dev->EventBuffer == NULL) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: Event buffer alloc failed\n"));
     Status = EFI_OUT_OF_RESOURCES;
     goto ErrorExit;
   }
 
-  //
-  // Allocate EP0 TRBs (each 16 bytes)
-  //
   Dev->Ep0SetupTrb = AllocateZeroPool (sizeof (DWC3_TRB));
-  Dev->Ep0InTrb     = AllocateZeroPool (sizeof (DWC3_TRB));
-  Dev->Ep0OutTrb    = AllocateZeroPool (sizeof (DWC3_TRB));
+  Dev->Ep0InTrb    = AllocateZeroPool (sizeof (DWC3_TRB));
+  Dev->Ep0OutTrb   = AllocateZeroPool (sizeof (DWC3_TRB));
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: TRBs setup=%p in=%p out=%p\n",
+          Dev->Ep0SetupTrb, Dev->Ep0InTrb, Dev->Ep0OutTrb));
+
   if ((Dev->Ep0SetupTrb == NULL) ||
       (Dev->Ep0InTrb    == NULL) ||
       (Dev->Ep0OutTrb   == NULL)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: EP0 TRB alloc failed\n"));
     Status = EFI_OUT_OF_RESOURCES;
     goto ErrorExit;
   }
 
-  //
-  // Allocate descriptor storage (allocated, not static, so class driver can modify)
-  //
   Dev->DevDesc = AllocateZeroPool (sizeof (USB_DEV_DESC));
   Dev->CfgDesc = AllocateZeroPool (sizeof (USB_CFG_FULL_DESC));
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: DevDesc=%p CfgDesc=%p\n",
+          Dev->DevDesc, Dev->CfgDesc));
+
   if ((Dev->DevDesc == NULL) || (Dev->CfgDesc == NULL)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: Descriptor alloc failed\n"));
     Status = EFI_OUT_OF_RESOURCES;
     goto ErrorExit;
   }
 
-  CopyMem (Dev->DevDesc, &gDeviceDescriptor,  sizeof (USB_DEV_DESC));
+  CopyMem (Dev->DevDesc, &gDeviceDescriptor, sizeof (USB_DEV_DESC));
   CopyMem (Dev->CfgDesc, &gConfigDescriptor, sizeof (USB_CFG_FULL_DESC));
 
-  //
-  // Set initial state
-  //
-  Dev->ControlMps  = 64;
-  Dev->BulkMps     = 512;
-  Dev->Ep0State    = EP0_STATE_INIT;
-  Dev->UsbState    = USBDEV_STATE_DEFAULT;
-  Dev->GetStatus.Device = 0x01;  // Self-powered
+  Dev->ControlMps       = 64;
+  Dev->BulkMps          = 512;
+  Dev->Ep0State         = EP0_STATE_INIT;
+  Dev->UsbState         = USBDEV_STATE_DEFAULT;
+  Dev->GetStatus.Device = 0x01;
 
-  //
-  // Copy protocol table
-  //
   CopyMem (&Dev->UsbfnIo, &gUsbfnIoProtocol, sizeof (EFI_USBFN_IO_PROTOCOL));
 
-  //
-  // Install protocol
-  //
+  UsbFnHandle = NULL;
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Installing EFI_USBFN_IO_PROTOCOL...\n"));
   Status = gBS->InstallMultipleProtocolInterfaces (
-                  &ImageHandle,
+                  &UsbFnHandle,
                   &gEfiUsbFunctionIoProtocolGuid,
                   &Dev->UsbfnIo,
                   NULL
                   );
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: InstallMultipleProtocolInterfaces -> %r, Handle=%p\n",
+          Status, UsbFnHandle));
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: InstallProtocol failed (%r)\n",
-            Status));
     goto ErrorExit;
   }
 
-  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Installed EFI_USBFN_IO_PROTOCOL\n"));
-
-  //
-  // Auto-start controller on driver load
-  //
   Status = Dwc3FnStartController (&Dev->UsbfnIo);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Dwc3DeviceDxe: Auto-start failed (%r)\n", Status));
-  }
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Dwc3FnStartController -> %r\n", Status));
 
-  DEBUG ((DEBUG_INFO, "Dwc3DeviceDxe: Exit\n"));
+  DEBUG ((EFI_D_WARN, "Dwc3DeviceDxe: Exit success\n"));
   return EFI_SUCCESS;
 
 ErrorExit:
-  if (Dev->EventBuffer   != NULL) FreePool (Dev->EventBuffer);
-  if (Dev->Ep0SetupTrb  != NULL) FreePool (Dev->Ep0SetupTrb);
-  if (Dev->Ep0InTrb     != NULL) FreePool (Dev->Ep0InTrb);
-  if (Dev->Ep0OutTrb    != NULL) FreePool (Dev->Ep0OutTrb);
-  if (Dev->DevDesc      != NULL) FreePool (Dev->DevDesc);
-  if (Dev->CfgDesc      != NULL) FreePool (Dev->CfgDesc);
-  FreePool (Dev);
+  DEBUG ((EFI_D_ERROR, "Dwc3DeviceDxe: ErrorExit -> %r\n", Status));
+
+  if (Dev != NULL) {
+    if (Dev->EventBuffer  != NULL) FreePool (Dev->EventBuffer);
+    if (Dev->Ep0SetupTrb != NULL) FreePool (Dev->Ep0SetupTrb);
+    if (Dev->Ep0InTrb    != NULL) FreePool (Dev->Ep0InTrb);
+    if (Dev->Ep0OutTrb   != NULL) FreePool (Dev->Ep0OutTrb);
+    if (Dev->DevDesc     != NULL) FreePool (Dev->DevDesc);
+    if (Dev->CfgDesc     != NULL) FreePool (Dev->CfgDesc);
+    FreePool (Dev);
+  }
+
   return Status;
 }

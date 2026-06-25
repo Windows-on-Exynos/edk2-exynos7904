@@ -503,6 +503,8 @@ typedef struct _DWC3_DEV_CTX {
   DWC3_PLAT_CONFIG            PlatConfig;
   UINT64                      Dwc3Base;
 
+  DWC3_DEV_CONFIG			  DevConfig;
+
   //
   // DWC3 state
   //

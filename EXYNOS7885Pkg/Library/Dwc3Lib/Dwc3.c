@@ -64,10 +64,29 @@ STATIC DWC3_PLAT_CONFIG  gDwc3PlatConfig = {
   .Guctl1                  = 0x00000008,
   .NumHsPhy                = 1,
   .NumSsPhy                = 0,
+  .MeBurstLength		   = 0xF,
   .SusPhySupported         = FALSE,
   .RefClk                  = 0,
   .SuspendClk              = 0
 };
+
+STATIC DWC3_DEV_CONFIG gDwc3DevConfig = {
+  .Speed				   = "high",
+  .m_uEventBufDepth		   = 64,
+  .m_uCtrlBufSize		   = 128,
+  .m_ucU1ExitValue		   = 10,
+  .m_usU2ExitValue		   = 257,
+  .NeedCacheOps			   = 1
+};
+
+EFI_STATUS
+Dwc3DevPlatInit(VOID **BaseAddr, DWC3_DEV_CONFIG **PlatConfig)
+{
+	*BaseAddr = (VOID *)EXYNOS9610_USB_LINK_BASE;
+	*PlatConfig = &gDwc3DevConfig;
+
+	return 0;
+}
 
 EFI_STATUS
 GetDwc3PlatConfig (OUT DWC3_PLAT_CONFIG *Config)

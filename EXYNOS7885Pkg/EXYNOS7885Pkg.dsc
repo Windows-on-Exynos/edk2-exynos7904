@@ -42,6 +42,7 @@
   UsiLib|EXYNOS7885Pkg/Library/UsiLib/UsiLib.inf
   HsI2cLib|EXYNOS7885Pkg/Library/HsI2cLib/HsI2cLib.inf
   I2cLib|EXYNOS7885Pkg/Library/I2cLib/I2cLib.inf
+  ExynosUartLib|EXYNOS7885Pkg/Library/ExynosUartLib/ExynosUartLib.inf
 
   #
   # USB Libraries
@@ -223,6 +224,8 @@
   EXYNOS7885Pkg/Drivers/GenericKeypadDeviceDxe/GenericKeypadDeviceDxe.inf
   EXYNOS7885Pkg/Drivers/KeypadDxe/KeypadDxe.inf
 
+  EXYNOS7885Pkg/Drivers/ExynosRngDxe/ExynosRngDxe.inf
+
   #
   # Virtual Keyboard
   #
@@ -239,6 +242,8 @@
   EXYNOS7885Pkg/Drivers/ChipDataDxe/ChipDataDxe.inf
   EXYNOS7885Pkg/Drivers/HsI2cDxe/HsI2cDxe.inf
   EXYNOS7885Pkg/Drivers/I2cDxe/I2cDxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosUartDxe/ExynosUartDxe.inf
+  EXYNOS7885Pkg/Drivers/ExynosAdcDxe/ExynosAdcDxe.inf
   EXYNOS7885Pkg/Drivers/UfsDxe/UfsDxe.inf
   EXYNOS7885Pkg/Drivers/Dwc3DeviceDxe/Dwc3DeviceDxe.inf
   EXYNOS7885Pkg/Drivers/UsbPhyDxe/UsbPhyDxe.inf
@@ -318,6 +323,7 @@
       NULL|MdeModulePkg/Library/BootMaintenanceManagerUiLib/BootMaintenanceManagerUiLib.inf
       PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
   }
+  EXYNOS7885Pkg/Application/viZFlashApp/viZFlashApp.inf
   ShellPkg/Application/Shell/Shell.inf {
     <LibraryClasses>
       ShellCommandLib|ShellPkg/Library/UefiShellCommandLib/UefiShellCommandLib.inf

@@ -20,5 +20,5 @@
   UefiBootServicesTableLib
 
 [Protocols]
-  gEfiExynosGpioProtocolGuid
+  gEfiGpioProtocolGuid
   gEfiSpeedyProtocolGuid

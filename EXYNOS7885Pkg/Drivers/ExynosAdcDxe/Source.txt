@@ -1,0 +1,4 @@
+REPO:   https://github.com/exynos990-mainline/lk3rd/
+BRANCH: dev
+FILES:  dev/adc/exynos_adc.c     (COMMIT: 0a45e509ddf6224b6af90518f7739f1e1cb146be)
+        include/dev/exynos_adc.h (COMMIT: 95b99ff2aa1fc183b46ddd19cfd1ba91a86087e4)

@@ -164,7 +164,7 @@ PhyReleasePmuIsolation (
   RegVal |= ENABLE_TCXO_BUF_MASK;
   PHY_WR32 (PmuReg, RegVal);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: PMU isolation released (reg=0x%lx, val=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: PMU isolation released (reg=0x%lx, val=0x%08x)\n",
           PmuReg, PHY_RD32 (PmuReg)));
 }
 
@@ -191,7 +191,7 @@ PhyApplyPmuIsolation (
   RegVal &= ~PhyConfig->PmuMask;
   PHY_WR32 (PmuReg, RegVal);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: PMU isolation applied (reg=0x%lx, val=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: PMU isolation applied (reg=0x%lx, val=0x%08x)\n",
           PmuReg, PHY_RD32 (PmuReg)));
 }
 
@@ -241,7 +241,7 @@ PhySwResetHigh (
   ClkRst |= CLKRST_PHY_RST_SEL;
   PHY_WR32 (RegsBase + USBCON_CLKRST, ClkRst);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Reset HIGH (CLKRST=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: Reset HIGH (CLKRST=0x%08x)\n",
           PHY_RD32 (RegsBase + USBCON_CLKRST)));
 }
 
@@ -263,7 +263,7 @@ PhySwResetLow (
   ClkRst &= ~CLKRST_PORT_RST;
   PHY_WR32 (RegsBase + USBCON_CLKRST, ClkRst);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Reset LOW (CLKRST=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: Reset LOW (CLKRST=0x%08x)\n",
           PHY_RD32 (RegsBase + USBCON_CLKRST)));
 }
 
@@ -291,7 +291,7 @@ PhyPowerEnable (
     PHY_WR32 (RegsBase + USBCON_HSP_TEST, Reg);
   }
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Power enabled (HSP_TEST=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: Power enabled (HSP_TEST=0x%08x)\n",
           PHY_RD32 (RegsBase + USBCON_HSP_TEST)));
 }
 
@@ -350,7 +350,7 @@ PhyConfigureUtmi (
   }
   PHY_WR32 (RegsBase + USBCON_HSP, Reg);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: UTMI configured (UTMI=0x%08x, HSP=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: UTMI configured (UTMI=0x%08x, HSP=0x%08x)\n",
           PHY_RD32 (RegsBase + USBCON_UTMI),
           PHY_RD32 (RegsBase + USBCON_HSP)));
 }
@@ -402,7 +402,7 @@ PhyConfigureVbus (
   PHY_WR32 (RegsBase + USBCON_UTMI, RegUtmi);
   PHY_WR32 (RegsBase + USBCON_HSP, RegHsp);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: VBUS %s (UTMI=0x%08x, HSP=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: VBUS %s (UTMI=0x%08x, HSP=0x%08x)\n",
           PhyConfig->NotUsedVbusPad ? "FORCED" : "external",
           PHY_RD32 (RegsBase + USBCON_UTMI),
           PHY_RD32 (RegsBase + USBCON_HSP)));
@@ -492,7 +492,7 @@ UsbPhyInit (
   MainVersion = PhyConfig->Version & USBCON_VER_MAJOR_MASK;
   SsOnlyCap   = (PhyConfig->Version & USBCON_VER_SS_CAP) ? TRUE : FALSE;
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Init PHY at 0x%lx (ver=0x%x, main=0x%x, SS=%d)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: Init PHY at 0x%lx (ver=0x%x, main=0x%x, SS=%d)\n",
           RegsBase, PhyConfig->Version, MainVersion, SsOnlyCap));
 
   PhyReleasePmuIsolation (PhyConfig);
@@ -551,7 +551,7 @@ UsbPhyInit (
   gBS->Stall (75);
 
   if (SsOnlyCap) {
-    DEBUG ((DEBUG_WARN, "UsbPhy: SS-only mode, skipping HS config\n"));
+    DEBUG ((EFI_D_INFO, "UsbPhy: SS-only mode, skipping HS config\n"));
     return EFI_SUCCESS;
   }
 
@@ -561,7 +561,7 @@ UsbPhyInit (
 
   PhyConfigureOvc (PhyConfig);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Init complete\n"));
+  DEBUG ((EFI_D_INFO, "UsbPhy: Init complete\n"));
   return EFI_SUCCESS;
 }
 
@@ -587,7 +587,7 @@ UsbPhyExit (
   //
   PhyApplyPmuIsolation (PhyConfig);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Exit complete\n"));
+  DEBUG ((EFI_D_INFO, "UsbPhy: Exit complete\n"));
   return EFI_SUCCESS;
 }
 
@@ -665,7 +665,7 @@ UsbPhyConnect (VOID)
   RegHsp |= HSP_VBUSVLDEXT;
   PHY_WR32 (RegsBase + USBCON_HSP, RegHsp);
 
-  DEBUG ((DEBUG_WARN, "UsbPhy: Connect (HSP=0x%08x)\n",
+  DEBUG ((EFI_D_INFO, "UsbPhy: Connect (HSP=0x%08x)\n",
           PHY_RD32 (RegsBase + USBCON_HSP)));
 }
 
