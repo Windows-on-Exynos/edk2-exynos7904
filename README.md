@@ -192,4 +192,6 @@ Sota4Ever for porting SdMmcDxe, UsiDxe, Usb and UartDxe Drivers to Exynos9610
 
 Project-Silicium for porting Speedy, PmicDxe, UsiDxe, and GpioDxe to Exynos platforms
 
+sonic011gamer for creating edk2-exynos7885 port
+
 All the people in ``EDKII pain and misery, struggles and disappointment`` on Discord.
